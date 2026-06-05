@@ -60,7 +60,17 @@ offered under a bloccs Pro license; the dashboard ships the gating *seam* (a
 `Bloccs.Web.Resolver`) but no license logic — in the open build every feature is
 on.
 
-## Status
+## Try it locally
 
-This is the **P0 skeleton**: the package mounts and renders its shell. The panels
-are wired up across subsequent phases (see `CHANGELOG.md`).
+From a checkout of this repo:
+
+```console
+$ mix deps.get
+$ mix dev
+# → open http://localhost:4000/bloccs
+```
+
+`mix dev` boots a standalone Phoenix endpoint with the dashboard mounted, starts
+a sample `orders` network, and drives a trickle of traffic so the live metrics
+and topology animate. (The precompiled `app.js` bundle is committed, so no Node
+build is needed; rebuild it with `mix assets.build` if you change `assets/`.)

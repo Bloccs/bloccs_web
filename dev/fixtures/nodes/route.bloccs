@@ -1,0 +1,20 @@
+[node]
+id      = "route"
+version = "0.1.0"
+kind    = "router"
+
+[doc]
+intent = "Branch on order type: known types are fulfilled, the rest dead-lettered."
+
+[ports.in]
+valid = { schema = "Order@1" }
+
+[ports.out]
+known   = { schema = "Order@1" }
+unknown = { schema = "Order@1" }
+
+[effects]
+
+[contract]
+pure_core    = "BloccsWebDev.Nodes.Route.transform/2"
+effect_shell = "BloccsWebDev.Nodes.Route.execute/2"

@@ -48,6 +48,8 @@ defmodule Bloccs.Web.MixProject do
       # dev/test only — never shipped in the package (see `files:` below)
       {:esbuild, "~> 0.8", only: :dev, runtime: false},
       {:tailwind, "~> 0.2", only: :dev, runtime: false},
+      # HTTP server for the local `mix dev` harness only.
+      {:bandit, "~> 1.5", only: :dev},
       {:floki, ">= 0.36.0", only: :test},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false}
@@ -75,6 +77,8 @@ defmodule Bloccs.Web.MixProject do
 
   defp aliases do
     [
+      # Run the local dashboard harness: `mix dev` → http://localhost:4000/bloccs
+      dev: ["run --no-halt dev.exs"],
       # Rebuild the committed asset bundles from the dev-only `assets/` tree.
       "assets.build": [
         "tailwind bloccs_web",

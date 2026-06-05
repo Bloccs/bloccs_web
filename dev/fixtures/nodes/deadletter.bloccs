@@ -1,0 +1,19 @@
+[node]
+id      = "deadletter"
+version = "0.1.0"
+kind    = "sink"
+
+[doc]
+intent = "Record an unknown order for later inspection (terminal)."
+
+[ports.in]
+unknown = { schema = "Order@1" }
+
+[ports.out]
+recorded = { schema = "Order@1" }
+
+[effects]
+
+[contract]
+pure_core    = "BloccsWebDev.Nodes.Deadletter.transform/2"
+effect_shell = "BloccsWebDev.Nodes.Deadletter.execute/2"

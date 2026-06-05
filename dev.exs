@@ -11,9 +11,18 @@ Logger.configure(level: :info)
 
 port = String.to_integer(System.get_env("PORT", "4000"))
 
+bind_ip =
+  case System.get_env("BIND", "0.0.0.0") |> String.split(".") |> Enum.map(&String.to_integer/1) do
+    [a, b, c, d] -> {a, b, c, d}
+    _ -> {0, 0, 0, 0}
+  end
+
 Application.put_env(:bloccs_web, BloccsWebDev.Endpoint,
   url: [host: "localhost"],
-  http: [ip: {127, 0, 0, 1}, port: port],
+  # Bind all interfaces (not just 127.0.0.1) so the port is reachable when the
+  # server runs in a VM/container and the browser is on the host. Override the
+  # bind address with BIND=127.0.0.1 if you want loopback-only.
+  http: [ip: bind_ip, port: port],
   adapter: Bandit.PhoenixAdapter,
   server: true,
   check_origin: false,

@@ -289,7 +289,16 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 .bloccs-feed { font-variant-numeric: tabular-nums; }
 .bloccs-feed__time { color: var(--bloccs-muted); font-family: ui-monospace, Menlo, monospace; font-size: 0.82rem; white-space: nowrap; }
-.bloccs-feed__edge { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; }
+.bloccs-feed__edge { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; white-space: nowrap; }
+.bloccs-feed__payload {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--bloccs-accent);
+  max-width: 26rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* hexagon glyph live states (CSS-driven, no JS animation) */
 .hex-glyph__body { transition: stroke 150ms ease, filter 150ms ease; }

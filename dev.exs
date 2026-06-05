@@ -67,6 +67,13 @@ end
 
 # --- sample network ---------------------------------------------------------
 
+# Capture payloads so the Messages feed shows order contents (bloccs 0.3+).
+Application.put_env(:bloccs, :inspect,
+  enabled: true,
+  max_bytes: 256,
+  redact: [:password, :token, :secret]
+)
+
 Code.require_file("dev/nodes.ex")
 :ok = BloccsWebDev.Schemas.register()
 

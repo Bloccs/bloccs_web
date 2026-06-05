@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Message payloads in the Messages feed.** When `Bloccs.Inspect` capture is
+  enabled (bloccs 0.3+), the feed shows a bounded, redacted snapshot of each
+  message's payload in a new column, read from the `:payload` key on the
+  `[:bloccs, :emit]` telemetry. A hint appears when capture is off. Requires
+  `bloccs ~> 0.3` (the dep is a local path until 0.3.0 is on Hex).
+
 ### Changed
 
 - **Licensed under Apache License 2.0** (matching the `bloccs` library; adds an

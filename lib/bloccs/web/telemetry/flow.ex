@@ -23,7 +23,8 @@ defmodule Bloccs.Web.Telemetry.Flow do
           to: endpoint() | nil,
           outcome: outcome(),
           duration_ms: number() | nil,
-          reason: term() | nil
+          reason: term() | nil,
+          payload: String.t() | nil
         }
 
   @type t :: %{recent: [map()], buckets: %{integer() => map()}}

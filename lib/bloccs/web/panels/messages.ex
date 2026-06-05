@@ -3,10 +3,9 @@ defmodule Bloccs.Web.Panels.Messages do
   Panel 5 — packages moving through the network. A live throughput chart over the
   per-second `Bloccs.Web.Telemetry.Flow` buckets, plus a scrolling feed of recent
   message events: each edge a message crossed (`from.port → to.port`), its
-  outcome, and the emitting node's latency. Filterable by node and outcome.
-
-  Flow metadata only — message payload contents are not in the telemetry stream
-  (a future opt-in bloccs capability).
+  outcome, the emitting node's latency, and — when `Bloccs.Inspect` capture is
+  enabled (bloccs 0.3+) — a bounded, redacted snapshot of the payload.
+  Filterable by node and outcome.
   """
 
   use Bloccs.Web, :html
@@ -21,7 +20,12 @@ defmodule Bloccs.Web.Panels.Messages do
   attr :filters, :map, default: %{node: nil, outcome: nil}
 
   def render(assigns) do
-    assigns = assign(assigns, :events, filter(assigns.flow.events, assigns.filters))
+    events = filter(assigns.flow.events, assigns.filters)
+
+    assigns =
+      assigns
+      |> assign(:events, events)
+      |> assign(:any_payload, Enum.any?(events, & &1[:payload]))
 
     ~H"""
     <section class="bloccs-messages">
@@ -57,6 +61,7 @@ defmodule Bloccs.Web.Panels.Messages do
           <tr>
             <th>Time</th>
             <th>From → To</th>
+            <th>Payload</th>
             <th>Outcome</th>
             <th class="bloccs-num">Latency</th>
           </tr>
@@ -65,6 +70,7 @@ defmodule Bloccs.Web.Panels.Messages do
           <tr :for={e <- @events} class="bloccs-row">
             <td class="bloccs-feed__time">{time(e.at)}</td>
             <td class="bloccs-feed__edge">{edge(e)}</td>
+            <td class="bloccs-feed__payload">{payload(e)}</td>
             <td><.status_pill state={pill(e.outcome)} label={Atom.to_string(e.outcome)} /></td>
             <td class="bloccs-num">{Format.latency(e.duration_ms)}</td>
           </tr>
@@ -74,6 +80,12 @@ defmodule Bloccs.Web.Panels.Messages do
       <p :if={@events == []} class="bloccs-empty">
         <strong>No messages yet.</strong>
         <span class="bloccs-muted">Send traffic through the network and it appears here live.</span>
+      </p>
+
+      <p :if={@events != [] and not @any_payload} class="bloccs-muted bloccs-hint">
+        Payload contents are hidden. Enable capture with
+        <code>config :bloccs, :inspect, enabled: true</code>
+        (bloccs 0.3+).
       </p>
     </section>
     """
@@ -93,6 +105,9 @@ defmodule Bloccs.Web.Panels.Messages do
   defp outcome_class(_), do: "failed"
 
   defp node_ids(%{nodes: nodes}), do: nodes |> Enum.map(& &1.id) |> Enum.sort()
+
+  defp payload(%{payload: p}) when is_binary(p), do: p
+  defp payload(_), do: "—"
 
   defp edge(%{out_port: nil, node: node}), do: "#{node}"
   defp edge(%{node: node, out_port: port, to: nil}), do: "#{node}.#{port} → ·"

@@ -36,9 +36,10 @@ defmodule Bloccs.Web.MixProject do
 
   defp deps do
     [
-      # The library being observed. For local development against an unreleased
-      # bloccs, override with a path dep: {:bloccs, path: "../bloccs"}
-      {:bloccs, "~> 0.2"},
+      # The library being observed. Payload display needs the `:payload` emit
+      # metadata from bloccs 0.3.0 (Bloccs.Inspect); until that's on Hex we build
+      # against the local checkout. Flip to `{:bloccs, "~> 0.3"}` once published.
+      {:bloccs, path: "../bloccs"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.1"},

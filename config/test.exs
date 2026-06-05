@@ -11,3 +11,6 @@ config :bloccs_web, Bloccs.Web.Test.Endpoint,
 
 config :logger, level: :warning
 config :phoenix, :plug_init_mode, :runtime
+
+# Capture payloads so the Messages feed can show message contents in tests.
+config :bloccs, :inspect, enabled: true, max_bytes: 256, redact: [:password, :token]

@@ -1,0 +1,19 @@
+[node]
+id      = "archive"
+version = "0.1.0"
+kind    = "sink"
+
+[doc]
+intent = "Archive a shipped order (terminal)."
+
+[ports.in]
+shipped = { schema = "Order@1" }
+
+[ports.out]
+archived = { schema = "Order@1" }
+
+[effects]
+
+[contract]
+pure_core    = "BloccsWebDev.Nodes.Archive.transform/2"
+effect_shell = "BloccsWebDev.Nodes.Archive.execute/2"

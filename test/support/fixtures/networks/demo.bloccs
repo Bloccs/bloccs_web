@@ -1,0 +1,29 @@
+[network]
+id      = "demo"
+version = "0.1.0"
+runtime = "beam"
+
+[nodes]
+first  = { use = "../nodes/inc.bloccs" }
+second = { use = "../nodes/inc.bloccs" }
+third  = { use = "../nodes/inc.bloccs" }
+
+[[edges]]
+from = "first.n"
+to   = "second.n"
+
+[[edges]]
+from = "second.n"
+to   = "third.n"
+
+[expose]
+in  = { seed = "first.n" }
+out = { total = "third.n" }
+
+[supervision]
+strategy     = "rest_for_one"
+max_restarts = 5
+max_seconds  = 60
+
+[deploy]
+concurrency = { second = 2 }

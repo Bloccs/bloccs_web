@@ -8,6 +8,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **P2–P5 — the four live panels.** All read the v0.2.0 introspection API and the
+  `[:bloccs, …]` telemetry stream; observe-only.
+  - **Networks** — every running network with version, node/edge counts, and
+    uptime (`Bloccs.Introspect.list_networks/0`), each row linking into topology.
+  - **Topology** — the network DAG drawn in the bloccs hexagon notation, computed
+    by a pure server-side layered layout (`Bloccs.Web.Topology.Layout`) and
+    rendered as one SVG (`Bloccs.Web.Components.Graph`). Node state lights up live.
+  - **Live metrics** — per-node throughput, p50/p95 latency, completed, and error
+    rate on a 1 Hz rolling window. A telemetry handler folds the bloccs node
+    events into `Bloccs.Web.Telemetry.Metrics` (pure core) in a single
+    `Collector`, which broadcasts coalesced frames over PubSub; the topology
+    glyphs light from the same frames.
+  - **Coverage** — structural coverage (`Bloccs.Web.Coverage`) from a recorded run
+    or a loaded `.bloccs-trace`: a summary bar, the reached/unreached overlay on
+    the graph, and the unreached-obligation list. Trace export is gated by the
+    `:trace_export` feature (the Pro seam) — available in the open build.
 - **P0 — package skeleton and mount.** The dashboard mounts into a host Phoenix
   app and renders its empty shell:
   - `Bloccs.Web.Router.bloccs_dashboard/2` — the one-line router macro; a single

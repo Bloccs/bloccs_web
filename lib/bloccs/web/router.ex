@@ -39,7 +39,7 @@ defmodule Bloccs.Web.Router do
       as = Keyword.get(opts, :as, :bloccs_dashboard)
       extra_on_mount = List.wrap(Keyword.get(opts, :on_mount, []))
 
-      session_args = %{"resolver" => to_string(resolver)}
+      session_args = %{"resolver" => to_string(resolver), "base_path" => path}
 
       # The dashboard's own precompiled bundles, served from priv/static so the
       # host needs no Plug.Static config. Inherits the surrounding pipeline.

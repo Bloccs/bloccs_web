@@ -1,0 +1,44 @@
+[network]
+id      = "orders"
+version = "0.1.0"
+runtime = "beam"
+
+[nodes]
+ingest     = { use = "../nodes/ingest.bloccs" }
+validate   = { use = "../nodes/validate.bloccs" }
+route      = { use = "../nodes/route.bloccs" }
+fulfill    = { use = "../nodes/fulfill.bloccs" }
+archive    = { use = "../nodes/archive.bloccs" }
+deadletter = { use = "../nodes/deadletter.bloccs" }
+
+[[edges]]
+from = "ingest.order"
+to   = "validate.order"
+
+[[edges]]
+from = "validate.valid"
+to   = "route.valid"
+
+[[edges]]
+from = "route.known"
+to   = "fulfill.known"
+
+[[edges]]
+from = "route.unknown"
+to   = "deadletter.unknown"
+
+[[edges]]
+from = "fulfill.shipped"
+to   = "archive.shipped"
+
+[expose]
+in  = { request = "ingest.request" }
+out = { archived = "archive.archived", dead = "deadletter.recorded" }
+
+[supervision]
+strategy     = "rest_for_one"
+max_restarts = 5
+max_seconds  = 60
+
+[deploy]
+concurrency = { validate = 2, fulfill = 3 }

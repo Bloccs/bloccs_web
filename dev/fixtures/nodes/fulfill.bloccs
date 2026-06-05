@@ -1,0 +1,19 @@
+[node]
+id      = "fulfill"
+version = "0.1.0"
+kind    = "transform"
+
+[doc]
+intent = "Fulfill a known order."
+
+[ports.in]
+known = { schema = "Order@1" }
+
+[ports.out]
+shipped = { schema = "Order@1" }
+
+[effects]
+
+[contract]
+pure_core    = "BloccsWebDev.Nodes.Fulfill.transform/2"
+effect_shell = "BloccsWebDev.Nodes.Fulfill.execute/2"

@@ -114,6 +114,149 @@ body {
   font-size: 0.72rem;
 }
 
+/* shared text helpers */
+.bloccs-muted { color: var(--bloccs-muted); }
+.bloccs-link { color: var(--bloccs-accent); text-decoration: none; }
+.bloccs-link:hover { text-decoration: underline; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+
+/* nav extras */
+.bloccs-nav__sep { color: var(--bloccs-line); }
+.bloccs-nav__network { color: var(--bloccs-text); font-weight: 600; }
+.bloccs-nav a.bloccs-brand { text-decoration: none; }
+.bloccs-nav a.bloccs-nav__link { text-decoration: none; }
+
+/* panel header */
+.bloccs-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.bloccs-panel__header h1 {
+  font-size: 1.25rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+/* networks table */
+.bloccs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.bloccs-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--bloccs-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--bloccs-line);
+}
+.bloccs-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--bloccs-line);
+}
+.bloccs-table .bloccs-num { text-align: right; font-variant-numeric: tabular-nums; }
+.bloccs-row:hover { background: var(--bloccs-surface); }
+
+/* topology graph */
+.bloccs-graph {
+  overflow: auto;
+  border: 1px solid var(--bloccs-line);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 1px 1px, var(--bloccs-line) 1px, transparent 0) 0 0 / 24px 24px,
+    var(--bloccs-bg);
+  padding: 0.5rem;
+}
+.bloccs-graph__svg { display: block; }
+.bloccs-edge {
+  stroke: var(--bloccs-purple);
+  stroke-width: 2;
+  opacity: 0.55;
+}
+.bloccs-graph__label {
+  fill: var(--bloccs-muted);
+  font-size: 13px;
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+.bloccs-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: var(--bloccs-muted);
+  font-size: 0.82rem;
+}
+.bloccs-legend__item { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* metrics panel */
+.bloccs-node-id { display: inline-flex; align-items: center; gap: 0.5rem; }
+.bloccs-node-id__glyph { flex: none; }
+.bloccs-num--error { color: var(--bloccs-fail); }
+.bloccs-hint { margin-top: 1rem; font-size: 0.82rem; }
+
+/* buttons */
+.bloccs-btn {
+  display: inline-block;
+  border: 1px solid var(--bloccs-line);
+  background: var(--bloccs-surface);
+  color: var(--bloccs-text);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.bloccs-btn:hover { border-color: var(--bloccs-purple); }
+.bloccs-btn--active { border-color: var(--bloccs-fail); color: var(--bloccs-fail); }
+
+/* coverage panel */
+.bloccs-coverage__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.bloccs-coverage__upload { display: inline-flex; gap: 0.5rem; align-items: center; }
+.bloccs-recording { color: var(--bloccs-fail); font-size: 0.85rem; }
+.bloccs-coverage__summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.bloccs-coverage__bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bloccs-surface);
+  overflow: hidden;
+}
+.bloccs-coverage__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--bloccs-purple), var(--bloccs-accent));
+}
+.bloccs-coverage__stat strong { font-size: 1.1rem; margin-right: 0.5rem; }
+.bloccs-coverage__unreached { margin-top: 1.25rem; }
+.bloccs-coverage__unreached h2 { font-size: 0.95rem; }
+.bloccs-coverage__unreached ul { list-style: none; padding: 0; margin: 0; }
+.bloccs-coverage__ob {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--bloccs-muted);
+  padding: 0.2rem 0;
+}
+.bloccs-coverage__complete { color: var(--bloccs-ok); margin-top: 1.25rem; }
+
+/* coverage graph overlay */
+.bloccs-edge--reached { stroke: var(--bloccs-accent); opacity: 0.95; }
+.bloccs-edge--unreached { stroke: var(--bloccs-line); opacity: 0.5; stroke-dasharray: 5 5; }
+
 /* hexagon glyph live states (CSS-driven, no JS animation) */
 .hex-glyph__body { transition: stroke 150ms ease, filter 150ms ease; }
 .hex-glyph--idle .hex-glyph__body { stroke: var(--bloccs-purple); opacity: 0.7; }

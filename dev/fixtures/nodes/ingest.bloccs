@@ -1,0 +1,19 @@
+[node]
+id      = "ingest"
+version = "0.1.0"
+kind    = "source"
+
+[doc]
+intent = "Accept an incoming order request at the network boundary."
+
+[ports.in]
+request = { schema = "Order@1" }
+
+[ports.out]
+order = { schema = "Order@1" }
+
+[effects]
+
+[contract]
+pure_core    = "BloccsWebDev.Nodes.Ingest.transform/2"
+effect_shell = "BloccsWebDev.Nodes.Ingest.execute/2"

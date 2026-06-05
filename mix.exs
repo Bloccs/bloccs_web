@@ -61,9 +61,9 @@ defmodule Bloccs.Web.MixProject do
   # consumer Node build).
   defp package do
     [
-      licenses: ["MIT"],
+      licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url, "bloccs" => "https://github.com/Bloccs/bloccs"},
-      files: ~w(lib priv guides mix.exs README.md LICENSE CHANGELOG.md)
+      files: ~w(lib priv guides mix.exs README.md LICENSE NOTICE CHANGELOG.md)
     ]
   end
 

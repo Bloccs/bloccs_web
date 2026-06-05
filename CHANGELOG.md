@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Licensed under Apache License 2.0** (matching the `bloccs` library; adds an
+  explicit patent grant). The dashboard has not been published yet, so this is
+  the license it ships under.
+
 ### Added
 
 - **Messages panel** — a live view of packages moving through a network. A

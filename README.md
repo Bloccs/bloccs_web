@@ -55,7 +55,7 @@ through. See [the installation guide](guides/installation.md) for the resolver
 
 ## License & Pro
 
-bloccs_web is **MIT-licensed and free**. Some advanced features may later be
+bloccs_web is **Apache-2.0-licensed and free**. Some advanced features may later be
 offered under a bloccs Pro license; the dashboard ships the gating *seam* (a
 `Bloccs.Web.Resolver`) but no license logic — in the open build every feature is
 on.

@@ -9,52 +9,23 @@ defmodule Bloccs.Web.Panels.Topology do
 
   use Bloccs.Web, :html
 
-  alias Bloccs.Web.Topology.Layout
+  import Bloccs.Web.Components.Graph
 
   attr :network, :any, required: true
   attr :base_path, :string, required: true
   attr :states, :map, default: %{}
 
   def render(assigns) do
-    assigns = assign(assigns, :layout, Layout.compute(assigns.network))
-
     ~H"""
     <section class="bloccs-topology">
       <header class="bloccs-panel__header">
         <h1>Topology</h1>
         <span class="bloccs-muted">
-          {length(@layout.nodes)} nodes · {length(@layout.edges)} edges
+          {length(@network.nodes)} nodes · {length(@network.edges)} edges
         </span>
       </header>
 
-      <div class="bloccs-graph" id={"graph-#{@network.id}"}>
-        <svg
-          class="bloccs-graph__svg"
-          viewBox={"0 0 #{@layout.width} #{@layout.height}"}
-          width={@layout.width}
-          height={@layout.height}
-          role="img"
-          aria-label={"Topology of #{@network.id}"}
-        >
-          <g class="bloccs-graph__edges">
-            <path :for={e <- @layout.edges} class="bloccs-edge" d={e.path} fill="none" />
-          </g>
-          <g class="bloccs-graph__nodes">
-            <g :for={n <- @layout.nodes} class="bloccs-graph__node">
-              <.hex_glyph
-                glyph={n.glyph}
-                state={Map.get(@states, n.id, :idle)}
-                label={n.label}
-                x={n.x}
-                y={n.y}
-              />
-              <text class="bloccs-graph__label" x={n.x} y={n.y + 74} text-anchor="middle">
-                {n.label}
-              </text>
-            </g>
-          </g>
-        </svg>
-      </div>
+      <.graph network={@network} states={@states} />
 
       <.legend network={@network} />
     </section>

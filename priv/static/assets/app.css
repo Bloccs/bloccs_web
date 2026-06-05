@@ -199,6 +199,64 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .bloccs-num--error { color: var(--bloccs-fail); }
 .bloccs-hint { margin-top: 1rem; font-size: 0.82rem; }
 
+/* buttons */
+.bloccs-btn {
+  display: inline-block;
+  border: 1px solid var(--bloccs-line);
+  background: var(--bloccs-surface);
+  color: var(--bloccs-text);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.bloccs-btn:hover { border-color: var(--bloccs-purple); }
+.bloccs-btn--active { border-color: var(--bloccs-fail); color: var(--bloccs-fail); }
+
+/* coverage panel */
+.bloccs-coverage__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.bloccs-coverage__upload { display: inline-flex; gap: 0.5rem; align-items: center; }
+.bloccs-recording { color: var(--bloccs-fail); font-size: 0.85rem; }
+.bloccs-coverage__summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.bloccs-coverage__bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bloccs-surface);
+  overflow: hidden;
+}
+.bloccs-coverage__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--bloccs-purple), var(--bloccs-accent));
+}
+.bloccs-coverage__stat strong { font-size: 1.1rem; margin-right: 0.5rem; }
+.bloccs-coverage__unreached { margin-top: 1.25rem; }
+.bloccs-coverage__unreached h2 { font-size: 0.95rem; }
+.bloccs-coverage__unreached ul { list-style: none; padding: 0; margin: 0; }
+.bloccs-coverage__ob {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--bloccs-muted);
+  padding: 0.2rem 0;
+}
+.bloccs-coverage__complete { color: var(--bloccs-ok); margin-top: 1.25rem; }
+
+/* coverage graph overlay */
+.bloccs-edge--reached { stroke: var(--bloccs-accent); opacity: 0.95; }
+.bloccs-edge--unreached { stroke: var(--bloccs-line); opacity: 0.5; stroke-dasharray: 5 5; }
+
 /* hexagon glyph live states (CSS-driven, no JS animation) */
 .hex-glyph__body { transition: stroke 150ms ease, filter 150ms ease; }
 .hex-glyph--idle .hex-glyph__body { stroke: var(--bloccs-purple); opacity: 0.7; }

@@ -12,8 +12,8 @@ defmodule Bloccs.Web.DashboardLive do
 
   use Bloccs.Web, :live_view
 
-  alias Bloccs.Introspect
-  alias Bloccs.Web.{Access, Paths}
+  alias Bloccs.{Introspect, Trace}
+  alias Bloccs.Web.{Access, Coverage, Paths}
   alias Bloccs.Web.Panels
   alias Bloccs.Web.Telemetry.Collector
 
@@ -46,20 +46,57 @@ defmodule Bloccs.Web.DashboardLive do
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     assign(socket,
+     socket
+     |> assign(
        page_title: "bloccs",
        network: nil,
        networks: [],
        node_states: %{},
        frame: %{nodes: %{}, updated_at: nil},
        metrics_topic: nil,
-       coverage: nil
-     )}
+       coverage: nil,
+       recording: nil
+     )
+     # `.bloccs-trace` has no registered MIME type, so accept :any and validate
+     # the contents on load instead of by extension.
+     |> allow_upload(:trace, accept: :any, max_entries: 1)}
   end
 
   @impl true
   def handle_info({:bloccs_frame, _network, frame}, socket) do
     {:noreply, put_frame(socket, frame)}
+  end
+
+  @impl true
+  def handle_event("coverage_record", _params, %{assigns: %{network: net}} = socket)
+      when not is_nil(net) do
+    recording = Trace.record(net.id)
+    {:noreply, assign(socket, :recording, recording)}
+  end
+
+  def handle_event("coverage_stop", _params, %{assigns: %{recording: rec}} = socket)
+      when not is_nil(rec) do
+    events = Trace.stop(rec)
+    {:noreply, socket |> assign(:recording, nil) |> put_coverage(events, :recording)}
+  end
+
+  def handle_event("coverage_validate", _params, socket), do: {:noreply, socket}
+
+  def handle_event("coverage_load", _params, socket) do
+    case consume_uploaded_entries(socket, :trace, fn %{path: path}, _entry ->
+           {:ok, Trace.load(path)}
+         end) do
+      [{:ok, events}] -> {:noreply, put_coverage(socket, events, :trace)}
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def terminate(_reason, socket) do
+    if rec = socket.assigns[:recording], do: Trace.stop(rec)
+    :ok
   end
 
   @impl true
@@ -134,6 +171,37 @@ defmodule Bloccs.Web.DashboardLive do
   defp node_states(%{nodes: nodes}), do: Map.new(nodes, fn {id, v} -> {id, v.state} end)
   defp node_states(_), do: %{}
 
+  # Build the coverage report from trace events and stash it (plus a re-encoded
+  # .bloccs-trace for the gated export).
+  defp put_coverage(socket, events, source) do
+    network = socket.assigns.network
+    report = Coverage.report(network, Trace.reached(events))
+
+    assign(socket, :coverage, %{
+      report: report,
+      source: source,
+      json: encode_trace(events, network.id)
+    })
+  end
+
+  defp encode_trace(events, network_id) do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "bloccs-#{network_id}-#{System.unique_integer([:positive])}.bloccs-trace"
+      )
+
+    case Trace.dump(events, network_id, path) do
+      :ok ->
+        json = File.read!(path)
+        _ = File.rm(path)
+        json
+
+      _ ->
+        nil
+    end
+  end
+
   defp fetch_network(nil), do: :error
 
   defp fetch_network(id) when is_binary(id) do
@@ -181,6 +249,8 @@ defmodule Bloccs.Web.DashboardLive do
       base_path={@base_path}
       features={@bloccs_features}
       coverage={@coverage}
+      recording={@recording != nil}
+      upload={@uploads.trace}
     />
     """
   end

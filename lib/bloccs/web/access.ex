@@ -11,9 +11,9 @@ defmodule Bloccs.Web.Access do
   @behaviour Bloccs.Web.Resolver
 
   @typedoc "Features the dashboard knows how to gate. All on in the free build."
-  @type feature :: :networks | :topology | :metrics | :coverage | :trace_export
+  @type feature :: :networks | :topology | :messages | :metrics | :coverage | :trace_export
 
-  @all_features ~w(networks topology metrics coverage trace_export)a
+  @all_features ~w(networks topology messages metrics coverage trace_export)a
 
   @impl true
   def resolve_user(_session), do: nil

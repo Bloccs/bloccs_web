@@ -15,6 +15,9 @@ defmodule Bloccs.Web.DashboardLive do
   alias Bloccs.Introspect
   alias Bloccs.Web.{Access, Paths}
   alias Bloccs.Web.Panels
+  alias Bloccs.Web.Telemetry.Collector
+
+  @pubsub Bloccs.Web.PubSub
 
   @doc """
   `on_mount` hook installed by `bloccs_dashboard/2`: stash the configured
@@ -49,8 +52,14 @@ defmodule Bloccs.Web.DashboardLive do
        networks: [],
        node_states: %{},
        frame: %{nodes: %{}, updated_at: nil},
+       metrics_topic: nil,
        coverage: nil
      )}
+  end
+
+  @impl true
+  def handle_info({:bloccs_frame, _network, frame}, socket) do
+    {:noreply, put_frame(socket, frame)}
   end
 
   @impl true
@@ -88,10 +97,42 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp load_panel(socket, action, params) when action in [:topology, :metrics, :coverage] do
     case fetch_network(params["network"]) do
-      {:ok, network} -> assign(socket, :network, network)
-      :error -> assign(socket, :network, nil)
+      {:ok, network} ->
+        socket = assign(socket, :network, network)
+        if action in [:topology, :metrics], do: subscribe_metrics(socket, network), else: socket
+
+      :error ->
+        assign(socket, :network, nil)
     end
   end
+
+  # Subscribe to the network's metric frames (idempotently) and prime the first
+  # paint from the collector snapshot. No-op until the socket is connected.
+  defp subscribe_metrics(socket, network) do
+    if connected?(socket) do
+      topic = Collector.topic(network.id)
+
+      if socket.assigns[:metrics_topic] != topic do
+        if old = socket.assigns[:metrics_topic], do: Phoenix.PubSub.unsubscribe(@pubsub, old)
+        Phoenix.PubSub.subscribe(@pubsub, topic)
+      end
+
+      socket
+      |> assign(:metrics_topic, topic)
+      |> put_frame(Collector.snapshot(network.id))
+    else
+      socket
+    end
+  end
+
+  defp put_frame(socket, frame) do
+    socket
+    |> assign(:frame, frame)
+    |> assign(:node_states, node_states(frame))
+  end
+
+  defp node_states(%{nodes: nodes}), do: Map.new(nodes, fn {id, v} -> {id, v.state} end)
+  defp node_states(_), do: %{}
 
   defp fetch_network(nil), do: :error
 

@@ -193,6 +193,12 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 .bloccs-legend__item { display: inline-flex; align-items: center; gap: 0.35rem; }
 
+/* metrics panel */
+.bloccs-node-id { display: inline-flex; align-items: center; gap: 0.5rem; }
+.bloccs-node-id__glyph { flex: none; }
+.bloccs-num--error { color: var(--bloccs-fail); }
+.bloccs-hint { margin-top: 1rem; font-size: 0.82rem; }
+
 /* hexagon glyph live states (CSS-driven, no JS animation) */
 .hex-glyph__body { transition: stroke 150ms ease, filter 150ms ease; }
 .hex-glyph--idle .hex-glyph__body { stroke: var(--bloccs-purple); opacity: 0.7; }

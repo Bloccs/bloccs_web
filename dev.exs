@@ -19,9 +19,6 @@ bind_ip =
 
 Application.put_env(:bloccs_web, BloccsWebDev.Endpoint,
   url: [host: "localhost"],
-  # Bind all interfaces (not just 127.0.0.1) so the port is reachable when the
-  # server runs in a VM/container and the browser is on the host. Override the
-  # bind address with BIND=127.0.0.1 if you want loopback-only.
   http: [ip: bind_ip, port: port],
   adapter: Bandit.PhoenixAdapter,
   server: true,
@@ -112,3 +109,8 @@ IO.puts("""
   │  Set PORT=… if #{port} is busy.  Ctrl+C twice to stop.       │
   └────────────────────────────────────────────────────────────┘
 """)
+
+# Keep the VM alive. The alias runs without `--no-halt` (which, combined with
+# Phoenix+Bandit, can leave the HTTP listener on 127.0.0.1:<random> instead of
+# the requested bind address on some setups).
+Process.sleep(:infinity)

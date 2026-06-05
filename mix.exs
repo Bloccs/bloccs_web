@@ -78,7 +78,7 @@ defmodule Bloccs.Web.MixProject do
   defp aliases do
     [
       # Run the local dashboard harness: `mix dev` → http://localhost:4000/bloccs
-      dev: ["run --no-halt dev.exs"],
+      dev: ["run dev.exs"],
       # Rebuild the committed asset bundles from the dev-only `assets/` tree.
       "assets.build": [
         "tailwind bloccs_web",

@@ -54,6 +54,9 @@ defmodule Bloccs.Web.DashboardLive do
        node_states: %{},
        frame: %{nodes: %{}, updated_at: nil},
        metrics_topic: nil,
+       flow: %{events: [], series: [], rate: 0},
+       flow_topic: nil,
+       flow_filters: %{node: nil, outcome: nil},
        coverage: nil,
        recording: nil
      )
@@ -65,6 +68,16 @@ defmodule Bloccs.Web.DashboardLive do
   @impl true
   def handle_info({:bloccs_frame, _network, frame}, socket) do
     {:noreply, put_frame(socket, frame)}
+  end
+
+  def handle_info({:bloccs_flow, _network, flow}, socket) do
+    {:noreply, assign(socket, :flow, flow)}
+  end
+
+  @impl true
+  def handle_event("flow_filter", params, socket) do
+    filters = %{node: blank(params["node"]), outcome: blank(params["outcome"])}
+    {:noreply, assign(socket, :flow_filters, filters)}
   end
 
   @impl true
@@ -132,14 +145,40 @@ defmodule Bloccs.Web.DashboardLive do
     assign(socket, :networks, Introspect.list_networks())
   end
 
-  defp load_panel(socket, action, params) when action in [:topology, :metrics, :coverage] do
+  defp load_panel(socket, action, params)
+       when action in [:topology, :messages, :metrics, :coverage] do
     case fetch_network(params["network"]) do
       {:ok, network} ->
-        socket = assign(socket, :network, network)
-        if action in [:topology, :metrics], do: subscribe_metrics(socket, network), else: socket
+        socket
+        |> assign(:network, network)
+        |> maybe_subscribe(action, network)
 
       :error ->
         assign(socket, :network, nil)
+    end
+  end
+
+  defp maybe_subscribe(socket, action, network) when action in [:topology, :metrics],
+    do: subscribe_metrics(socket, network)
+
+  defp maybe_subscribe(socket, :messages, network), do: subscribe_flow(socket, network)
+  defp maybe_subscribe(socket, _action, _network), do: socket
+
+  # Subscribe to the network's flow frames and prime the first paint.
+  defp subscribe_flow(socket, network) do
+    if connected?(socket) do
+      topic = Collector.flow_topic(network.id)
+
+      if socket.assigns[:flow_topic] != topic do
+        if old = socket.assigns[:flow_topic], do: Phoenix.PubSub.unsubscribe(@pubsub, old)
+        Phoenix.PubSub.subscribe(@pubsub, topic)
+      end
+
+      socket
+      |> assign(:flow_topic, topic)
+      |> assign(:flow, Collector.flow_snapshot(network.id))
+    else
+      socket
     end
   end
 
@@ -170,6 +209,9 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp node_states(%{nodes: nodes}), do: Map.new(nodes, fn {id, v} -> {id, v.state} end)
   defp node_states(_), do: %{}
+
+  defp blank(v) when v in [nil, ""], do: nil
+  defp blank(v), do: v
 
   # Build the coverage report from trace events and stash it (plus a re-encoded
   # .bloccs-trace for the gated export).
@@ -236,6 +278,17 @@ defmodule Bloccs.Web.DashboardLive do
     """
   end
 
+  defp panel_body(%{live_action: :messages} = assigns) do
+    ~H"""
+    <Panels.Messages.render
+      network={@network}
+      base_path={@base_path}
+      flow={@flow}
+      filters={@flow_filters}
+    />
+    """
+  end
+
   defp panel_body(%{live_action: :metrics} = assigns) do
     ~H"""
     <Panels.Metrics.render network={@network} base_path={@base_path} frame={@frame} />
@@ -280,6 +333,13 @@ defmodule Bloccs.Web.DashboardLive do
           action={:topology}
           href={Paths.topology(@base_path, @network.id)}
           label="Topology"
+        />
+        <.nav_link
+          :if={Access.enabled?(:messages, @features)}
+          active={@active}
+          action={:messages}
+          href={Paths.messages(@base_path, @network.id)}
+          label="Messages"
         />
         <.nav_link
           :if={Access.enabled?(:metrics, @features)}

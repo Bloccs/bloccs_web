@@ -8,6 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Messages panel** — a live view of packages moving through a network. A
+  server-rendered throughput chart over per-second buckets plus a scrolling feed
+  of recent edge traversals (`from.port → to.port`), each with its outcome and
+  the emitting node's latency, filterable by node and outcome. Built from the
+  `[:bloccs, :emit]` + node telemetry: emits are correlated with their node's
+  `:stop` in a per-process buffer in `Bloccs.Web.Telemetry.Handler`, folded by
+  `Bloccs.Web.Telemetry.Flow`, and broadcast on `bloccs:flow:<net>`. Flow
+  metadata only — payload contents are a future opt-in bloccs capability.
 - **P2–P5 — the four live panels.** All read the v0.2.0 introspection API and the
   `[:bloccs, …]` telemetry stream; observe-only.
   - **Networks** — every running network with version, node/edge counts, and

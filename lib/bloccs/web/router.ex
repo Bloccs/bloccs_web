@@ -53,6 +53,7 @@ defmodule Bloccs.Web.Router do
         live "#{path}", Bloccs.Web.DashboardLive, :networks, as: as
         live "#{path}/networks", Bloccs.Web.DashboardLive, :networks, as: as
         live "#{path}/networks/:network", Bloccs.Web.DashboardLive, :topology, as: as
+        live "#{path}/networks/:network/messages", Bloccs.Web.DashboardLive, :messages, as: as
         live "#{path}/networks/:network/metrics", Bloccs.Web.DashboardLive, :metrics, as: as
         live "#{path}/networks/:network/coverage", Bloccs.Web.DashboardLive, :coverage, as: as
       end

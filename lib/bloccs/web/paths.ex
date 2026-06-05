@@ -11,6 +11,9 @@ defmodule Bloccs.Web.Paths do
   @spec topology(String.t(), atom() | String.t()) :: String.t()
   def topology(base, id), do: "#{base}/networks/#{id}"
 
+  @spec messages(String.t(), atom() | String.t()) :: String.t()
+  def messages(base, id), do: "#{base}/networks/#{id}/messages"
+
   @spec metrics(String.t(), atom() | String.t()) :: String.t()
   def metrics(base, id), do: "#{base}/networks/#{id}/metrics"
 

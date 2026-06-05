@@ -93,8 +93,13 @@ end)
 
 IO.puts("""
 
-  bloccs dashboard running →  http://localhost:#{port}/bloccs
-
-  A sample `orders` network is live and receiving a trickle of traffic.
-  Press Ctrl+C twice to stop.
+  ┌────────────────────────────────────────────────────────────┐
+  │  bloccs dashboard is up                                     │
+  │  →  http://localhost:#{port}/bloccs                              │
+  │                                                            │
+  │  A sample `orders` network is live with a trickle of       │
+  │  traffic. Wait for THIS message before opening the browser │
+  │  (the first run compiles deps and can take a minute).      │
+  │  Set PORT=… if #{port} is busy.  Ctrl+C twice to stop.       │
+  └────────────────────────────────────────────────────────────┘
 """)

@@ -1,0 +1,31 @@
+# Changelog
+
+All notable changes to `bloccs_web` are documented here. The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- **P0 — package skeleton and mount.** The dashboard mounts into a host Phoenix
+  app and renders its empty shell:
+  - `Bloccs.Web.Router.bloccs_dashboard/2` — the one-line router macro; a single
+    `live_session` over the four panel routes (networks, topology, metrics,
+    coverage), inheriting host auth from the surrounding pipeline.
+  - `Bloccs.Web.Resolver` behaviour + `Bloccs.Web.Access` default resolver — the
+    Pro-gating seam (`resolve_user/resolve_access/resolve_features` +
+    `enabled?/2`). The free baseline enables every feature.
+  - `Bloccs.Web.DashboardLive` — the single LiveView (one `live_action` per
+    panel); P0 ships the chrome and empty panel bodies.
+  - `Bloccs.Web.HexGlyph` — the bloccs hexagon notation as inline SVG, keyed by
+    the atoms `Bloccs.Introspect.glyph/1` returns; live state is a CSS class.
+  - `Bloccs.Web.Application` + `Bloccs.Web.Telemetry.Collector` — auto-starting
+    OTP app with a private PubSub and the (P4) metrics collector, currently a
+    no-op snapshot source.
+  - Precompiled-asset packaging (the oban_web model): `assets/` is dev-only and
+    excluded from the Hex package; the committed `priv/static/assets` bundles
+    ship in the release.
+
+> **Note:** requires `bloccs ~> 0.2`. Before that is on Hex, develop locally with
+> a path override (`{:bloccs, path: "../bloccs"}`).

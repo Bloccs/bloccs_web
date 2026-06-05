@@ -1,0 +1,125 @@
+/* bloccs_web dashboard styles.
+ *
+ * P0: hand-authored and committed verbatim to priv/static/assets/app.css (it is
+ * self-contained and needs no build). As the panels grow, this becomes the
+ * Tailwind input scanned over lib/**; the committed bundle is then produced by
+ * `mix assets.build` and verified in CI. Brand tokens mirror
+ * marketing/notation-icons. */
+
+:root {
+  --bloccs-bg: #09090b;
+  --bloccs-surface: #1a1326;
+  --bloccs-line: #2a2140;
+  --bloccs-purple: #7c37ab;
+  --bloccs-accent: #c98bff;
+  --bloccs-text: #fafafa;
+  --bloccs-muted: #a99fc0;
+  --bloccs-ok: #3fb950;
+  --bloccs-warn: #d29922;
+  --bloccs-fail: #f85149;
+}
+
+.bloccs-root,
+body {
+  margin: 0;
+  background: var(--bloccs-bg);
+  color: var(--bloccs-text);
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+.bloccs-app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* nav */
+.bloccs-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--bloccs-line);
+}
+.bloccs-brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--bloccs-accent);
+}
+.bloccs-nav__link {
+  color: var(--bloccs-muted);
+  cursor: default;
+  font-size: 0.95rem;
+}
+.bloccs-nav__link--active {
+  color: var(--bloccs-text);
+  border-bottom: 2px solid var(--bloccs-purple);
+  padding-bottom: 0.25rem;
+}
+
+/* panels */
+.bloccs-panel {
+  padding-top: 1.5rem;
+}
+.bloccs-empty {
+  border: 1px dashed var(--bloccs-line);
+  border-radius: 10px;
+  padding: 2.5rem;
+  color: var(--bloccs-muted);
+  background: var(--bloccs-surface);
+}
+
+/* status pill */
+.bloccs-pill {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: var(--bloccs-line);
+  color: var(--bloccs-text);
+}
+.bloccs-pill--ok { background: rgba(63, 185, 80, 0.18); color: var(--bloccs-ok); }
+.bloccs-pill--failed { background: rgba(248, 81, 73, 0.18); color: var(--bloccs-fail); }
+.bloccs-pill--running { background: rgba(201, 139, 255, 0.18); color: var(--bloccs-accent); }
+
+/* metric badge */
+.bloccs-badge {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--bloccs-line);
+  border-radius: 6px;
+}
+.bloccs-badge__label { color: var(--bloccs-muted); font-size: 0.72rem; }
+.bloccs-badge__value { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bloccs-badge--ok .bloccs-badge__value { color: var(--bloccs-ok); }
+.bloccs-badge--warn .bloccs-badge__value { color: var(--bloccs-warn); }
+.bloccs-badge--fail .bloccs-badge__value { color: var(--bloccs-fail); }
+
+/* pro lock */
+.bloccs-pro-lock {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--bloccs-muted);
+  font-size: 0.85rem;
+}
+.bloccs-pro-lock__badge {
+  background: var(--bloccs-accent);
+  color: var(--bloccs-bg);
+  border-radius: 4px;
+  padding: 0 0.4rem;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+/* hexagon glyph live states (CSS-driven, no JS animation) */
+.hex-glyph__body { transition: stroke 150ms ease, filter 150ms ease; }
+.hex-glyph--idle .hex-glyph__body { stroke: var(--bloccs-purple); opacity: 0.7; }
+.hex-glyph--running .hex-glyph__body {
+  stroke: var(--bloccs-accent);
+  filter: drop-shadow(0 0 4px var(--bloccs-accent));
+}
+.hex-glyph--ok .hex-glyph__body { stroke: var(--bloccs-ok); }
+.hex-glyph--failed .hex-glyph__body { stroke: var(--bloccs-fail); }

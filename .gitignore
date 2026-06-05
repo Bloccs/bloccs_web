@@ -1,0 +1,18 @@
+# Build artifacts
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+*.beam
+/.elixir_ls/
+.elixir-tools/
+
+# Dev-only asset toolchain (the committed bundles in priv/static are the product)
+/assets/node_modules/
+
+# Local env
+*.local
+.DS_Store

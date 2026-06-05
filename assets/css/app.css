@@ -114,6 +114,54 @@ body {
   font-size: 0.72rem;
 }
 
+/* shared text helpers */
+.bloccs-muted { color: var(--bloccs-muted); }
+.bloccs-link { color: var(--bloccs-accent); text-decoration: none; }
+.bloccs-link:hover { text-decoration: underline; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+
+/* nav extras */
+.bloccs-nav__sep { color: var(--bloccs-line); }
+.bloccs-nav__network { color: var(--bloccs-text); font-weight: 600; }
+.bloccs-nav a.bloccs-brand { text-decoration: none; }
+.bloccs-nav a.bloccs-nav__link { text-decoration: none; }
+
+/* panel header */
+.bloccs-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.bloccs-panel__header h1 {
+  font-size: 1.25rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+/* networks table */
+.bloccs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.bloccs-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--bloccs-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--bloccs-line);
+}
+.bloccs-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--bloccs-line);
+}
+.bloccs-table .bloccs-num { text-align: right; font-variant-numeric: tabular-nums; }
+.bloccs-row:hover { background: var(--bloccs-surface); }
+
 /* hexagon glyph live states (CSS-driven, no JS animation) */
 .hex-glyph__body { transition: stroke 150ms ease, filter 150ms ease; }
 .hex-glyph--idle .hex-glyph__body { stroke: var(--bloccs-purple); opacity: 0.7; }

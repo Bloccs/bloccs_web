@@ -49,6 +49,7 @@ defmodule Bloccs.Web.MixProject do
       {:esbuild, "~> 0.8", only: :dev, runtime: false},
       {:tailwind, "~> 0.2", only: :dev, runtime: false},
       {:floki, ">= 0.36.0", only: :test},
+      {:lazy_html, ">= 0.1.0", only: :test},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end

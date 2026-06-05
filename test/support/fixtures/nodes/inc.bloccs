@@ -1,0 +1,19 @@
+[node]
+id      = "inc"
+version = "0.1.0"
+kind    = "transform"
+
+[doc]
+intent = "Increment an integer. The smallest stateless transform — used to wire a demo network for the dashboard tests."
+
+[ports.in]
+n = { schema = "Num@1" }
+
+[ports.out]
+n = { schema = "Num@1" }
+
+[effects]
+
+[contract]
+pure_core    = "Bloccs.Web.Test.Demo.Inc.transform/2"
+effect_shell = "Bloccs.Web.Test.Demo.Inc.execute/2"

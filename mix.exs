@@ -36,10 +36,9 @@ defmodule Bloccs.Web.MixProject do
 
   defp deps do
     [
-      # The library being observed. Published baseline is `~> 0.2`; for local
-      # development before that lands on Hex, override with a path dep:
-      #   {:bloccs, path: "../bloccs"}
-      {:bloccs, path: "../bloccs"},
+      # The library being observed. For local development against an unreleased
+      # bloccs, override with a path dep: {:bloccs, path: "../bloccs"}
+      {:bloccs, "~> 0.2"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.1"},

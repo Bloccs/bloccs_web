@@ -39,14 +39,13 @@ defmodule Bloccs.Web.Telemetry.Handler do
   def detach(id), do: :telemetry.detach(id)
 
   @doc false
-  # An emit is one edge firing: stash it in the current message's buffer.
+  # An emit is one edge firing: stash it (with the opt-in payload snapshot) in the
+  # current message's buffer.
   def handle([:bloccs, :emit], _measurements, metadata, _config) do
     case Process.get(@buf) do
       %{emits: emits} = buf ->
-        Process.put(@buf, %{
-          buf
-          | emits: [{metadata[:from_port], metadata[:targets] || []} | emits]
-        })
+        emit = {metadata[:from_port], metadata[:targets] || [], metadata[:payload]}
+        Process.put(@buf, %{buf | emits: [emit | emits]})
 
       _ ->
         :ok
@@ -99,7 +98,8 @@ defmodule Bloccs.Web.Telemetry.Handler do
       to: nil,
       outcome: kind,
       duration_ms: nil,
-      reason: nil
+      reason: nil,
+      payload: nil
     })
   end
 
@@ -112,14 +112,15 @@ defmodule Bloccs.Web.Telemetry.Handler do
 
     Process.delete(@buf)
 
-    for {port, targets} <- normalize_emits(emits), target <- targets_or_nil(targets) do
+    for {port, targets, payload} <- normalize_emits(emits), target <- targets_or_nil(targets) do
       Collector.record_flow(collector, network, %{
         node: node,
         out_port: port,
         to: target,
         outcome: outcome,
         duration_ms: duration,
-        reason: reason
+        reason: reason,
+        payload: payload
       })
     end
 
@@ -128,7 +129,7 @@ defmodule Bloccs.Web.Telemetry.Handler do
 
   # A node that emitted nothing (failed/dropped before emit, or terminal) still
   # produces one row so the failure is visible.
-  defp normalize_emits([]), do: [{nil, []}]
+  defp normalize_emits([]), do: [{nil, [], nil}]
   defp normalize_emits(emits), do: emits
 
   defp targets_or_nil([]), do: [nil]

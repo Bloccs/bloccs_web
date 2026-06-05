@@ -24,6 +24,37 @@ defmodule Bloccs.Web.Panels.MessagesTest do
     assert edge.outcome == :ok
     # the emitting node's latency is paired onto the edge
     assert is_number(edge.duration_ms)
+    # inspect is enabled in test config → the emitted payload rides along
+    assert is_binary(edge.payload)
+    assert edge.payload =~ "n:"
+  end
+
+  test "the feed shows captured payload contents", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/bloccs/networks/demo/messages")
+
+    frame = %{
+      rate: 1,
+      series: [],
+      events: [
+        %{
+          node: :route,
+          out_port: :known,
+          to: {:fulfill, :known},
+          outcome: :ok,
+          duration_ms: 0.3,
+          reason: nil,
+          payload: ~s(%{id: "ord-7", type: "retail", password: "[redacted]"}),
+          at: 1_700_000_000_123
+        }
+      ]
+    }
+
+    send(view.pid, {:bloccs_flow, :demo, frame})
+    rendered = render(view)
+
+    assert rendered =~ "ord-7"
+    assert rendered =~ "[redacted]"
+    refute rendered =~ "Payload contents are hidden"
   end
 
   test "the panel renders the feed and reflects a live flow frame", %{conn: conn} do

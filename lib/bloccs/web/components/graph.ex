@@ -24,6 +24,8 @@ defmodule Bloccs.Web.Components.Graph do
   attr :rates, :map, default: %{}
   attr :active_edges, :any, default: nil
   attr :link_base, :string, default: nil
+  # false hides labels/rates (for compact thumbnails)
+  attr :labels, :boolean, default: true
   # nil = no coverage overlay; a MapSet of {from_node, to_node} = reached edges
   attr :reached_edges, :any, default: nil
 
@@ -52,10 +54,20 @@ defmodule Bloccs.Web.Components.Graph do
           <g :for={n <- @layout.nodes} class="bloccs-graph__node">
             <%= if @link_base do %>
               <.link navigate={Paths.messages(@link_base, @network.id) <> "?node=#{n.id}"}>
-                <.node_cell n={n} state={Map.get(@states, n.id, :idle)} rate={Map.get(@rates, n.id)} />
+                <.node_cell
+                  n={n}
+                  state={Map.get(@states, n.id, :idle)}
+                  rate={Map.get(@rates, n.id)}
+                  labels={@labels}
+                />
               </.link>
             <% else %>
-              <.node_cell n={n} state={Map.get(@states, n.id, :idle)} rate={Map.get(@rates, n.id)} />
+              <.node_cell
+                n={n}
+                state={Map.get(@states, n.id, :idle)}
+                rate={Map.get(@rates, n.id)}
+                labels={@labels}
+              />
             <% end %>
           </g>
         </g>
@@ -67,13 +79,16 @@ defmodule Bloccs.Web.Components.Graph do
   attr :n, :map, required: true
   attr :state, :atom, default: :idle
   attr :rate, :any, default: nil
+  attr :labels, :boolean, default: true
 
   defp node_cell(assigns) do
     ~H"""
     <.hex_glyph glyph={@n.glyph} state={@state} label={@n.label} x={@n.x} y={@n.y} />
-    <text class="bloccs-graph__label" x={@n.x} y={@n.y + 70} text-anchor="middle">{@n.label}</text>
+    <text :if={@labels} class="bloccs-graph__label" x={@n.x} y={@n.y + 70} text-anchor="middle">
+      {@n.label}
+    </text>
     <text
-      :if={@rate && @rate > 0}
+      :if={@labels && @rate && @rate > 0}
       class="bloccs-graph__rate"
       x={@n.x}
       y={@n.y + 88}

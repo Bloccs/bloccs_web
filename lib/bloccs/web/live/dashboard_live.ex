@@ -58,7 +58,10 @@ defmodule Bloccs.Web.DashboardLive do
        flow_topic: nil,
        flow_filters: %{node: nil, outcome: nil},
        coverage: nil,
-       recording: nil
+       recording: nil,
+       net_graphs: %{},
+       net_stats: %{},
+       overview_ids: []
      )
      # `.bloccs-trace` has no registered MIME type, so accept :any and validate
      # the contents on load instead of by extension.
@@ -66,12 +69,12 @@ defmodule Bloccs.Web.DashboardLive do
   end
 
   @impl true
-  def handle_info({:bloccs_frame, _network, frame}, socket) do
-    {:noreply, put_frame(socket, frame)}
+  def handle_info({:bloccs_frame, network, frame}, socket) do
+    {:noreply, socket |> put_frame(frame) |> update_overview(network, frame: frame)}
   end
 
-  def handle_info({:bloccs_flow, _network, flow}, socket) do
-    {:noreply, assign(socket, :flow, flow)}
+  def handle_info({:bloccs_flow, network, flow}, socket) do
+    {:noreply, socket |> assign(:flow, flow) |> update_overview(network, flow: flow)}
   end
 
   @impl true
@@ -143,7 +146,13 @@ defmodule Bloccs.Web.DashboardLive do
   # ---- data loading per panel ----
 
   defp load_panel(socket, :networks, _params) do
-    assign(socket, :networks, Introspect.list_networks())
+    networks = Introspect.list_networks()
+
+    socket
+    |> assign(:networks, networks)
+    |> assign(:net_graphs, Map.new(networks, &{&1.id, fetch_graph(&1.id)}))
+    |> assign(:net_stats, Map.new(networks, &{&1.id, net_stat(&1.id)}))
+    |> subscribe_overview(networks)
   end
 
   defp load_panel(socket, action, params)
@@ -156,6 +165,73 @@ defmodule Bloccs.Web.DashboardLive do
 
       :error ->
         assign(socket, :network, nil)
+    end
+  end
+
+  # ---- networks overview (live cards) ----
+
+  # Subscribe to every network's flow + metric topics so the overview cards stay
+  # live. Re-entrant: unsubscribe the previous set before subscribing the new one.
+  defp subscribe_overview(socket, networks) do
+    if connected?(socket) do
+      ids = Enum.map(networks, & &1.id)
+      Enum.each(socket.assigns.overview_ids -- ids, &unsubscribe_overview/1)
+      Enum.each(ids -- socket.assigns.overview_ids, &subscribe_one_overview/1)
+      assign(socket, :overview_ids, ids)
+    else
+      socket
+    end
+  end
+
+  defp subscribe_one_overview(id) do
+    Phoenix.PubSub.subscribe(@pubsub, Collector.flow_topic(id))
+    Phoenix.PubSub.subscribe(@pubsub, Collector.topic(id))
+  end
+
+  defp unsubscribe_overview(id) do
+    Phoenix.PubSub.unsubscribe(@pubsub, Collector.flow_topic(id))
+    Phoenix.PubSub.unsubscribe(@pubsub, Collector.topic(id))
+  end
+
+  defp fetch_graph(id) do
+    case Introspect.network(id) do
+      {:ok, network} -> network
+      _ -> nil
+    end
+  end
+
+  defp net_stat(id) do
+    frame = Collector.snapshot(id)
+
+    %{
+      rate: Collector.flow_snapshot(id).rate,
+      errors: total_errors(frame),
+      states: node_states(frame)
+    }
+  end
+
+  defp total_errors(%{nodes: nodes}),
+    do: nodes |> Map.values() |> Enum.map(&Map.get(&1, :errors, 0)) |> Enum.sum()
+
+  defp total_errors(_), do: 0
+
+  # Fold a live frame into the overview stats for that network (no-op if the
+  # network isn't on the currently-loaded overview).
+  defp update_overview(socket, network, change) do
+    stats = socket.assigns.net_stats
+
+    case Map.fetch(stats, network) do
+      {:ok, cur} ->
+        updated =
+          case change do
+            [flow: flow] -> %{cur | rate: flow.rate}
+            [frame: frame] -> %{cur | errors: total_errors(frame), states: node_states(frame)}
+          end
+
+        assign(socket, :net_stats, Map.put(stats, network, updated))
+
+      :error ->
+        socket
     end
   end
 
@@ -266,7 +342,13 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp panel_body(%{live_action: :networks} = assigns) do
     ~H"""
-    <Panels.Networks.render networks={@networks} base_path={@base_path} now={@now} />
+    <Panels.Networks.render
+      networks={@networks}
+      base_path={@base_path}
+      now={@now}
+      graphs={@net_graphs}
+      stats={@net_stats}
+    />
     """
   end
 

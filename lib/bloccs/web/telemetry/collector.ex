@@ -10,6 +10,11 @@ defmodule Bloccs.Web.Telemetry.Collector do
   On a 1-second tick it broadcasts a snapshot of each over `Phoenix.PubSub`
   (`topic/1` for metrics, `flow_topic/1` for flow). Panels subscribe for live
   updates and call `snapshot/1` / `flow_snapshot/1` on mount for first paint.
+
+  > A plain `GenServer` is the right tool here: this is a stateful telemetry sink
+  > with a periodic tick, not a dataflow stage. The "no raw GenServers" rule
+  > governs the `bloccs` library core (where Broadway/GenStage apply), not this
+  > observability process.
   """
 
   use GenServer

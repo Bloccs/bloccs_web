@@ -18,7 +18,7 @@ API and the `[:bloccs, …]` telemetry stream; it never drives the runtime.
 # mix.exs
 def deps do
   [
-    {:bloccs, "~> 0.2"},
+    {:bloccs, "~> 0.3"},
     {:bloccs_web, "~> 0.1"}
   ]
 end

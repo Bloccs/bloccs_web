@@ -19,8 +19,11 @@ defmodule Bloccs.Web.Resolver do
   @typedoc "An opaque user term resolved from the connection (whatever the host uses)."
   @type user :: term()
 
-  @typedoc "A coarse access level for the session."
-  @type access :: :all | :read_only | {:forbidden, reason :: term()}
+  @typedoc """
+  A coarse access level for the session. The dashboard is observe-only, so the
+  meaningful distinction is full access vs. forbidden.
+  """
+  @type access :: :all | {:forbidden, reason :: term()}
 
   @typedoc "A feature flag the dashboard consults before rendering gated UI."
   @type feature :: atom()

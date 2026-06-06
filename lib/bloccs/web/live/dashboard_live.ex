@@ -247,7 +247,13 @@ defmodule Bloccs.Web.DashboardLive do
   defp fetch_network(nil), do: :error
 
   defp fetch_network(id) when is_binary(id) do
-    Introspect.network(String.to_existing_atom(id))
+    # A network that was started (so its atom exists) but has since stopped
+    # returns `{:error, :not_found}` — collapse it, and an unknown atom, to the
+    # one `:error` the caller renders as the not-found panel.
+    case Introspect.network(String.to_existing_atom(id)) do
+      {:ok, network} -> {:ok, network}
+      {:error, :not_found} -> :error
+    end
   rescue
     ArgumentError -> :error
   end

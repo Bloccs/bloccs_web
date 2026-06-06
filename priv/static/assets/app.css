@@ -184,6 +184,29 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   font-size: 13px;
   font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
 }
+.bloccs-graph__rate {
+  fill: var(--bloccs-accent);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* clickable nodes (live topology drills into a node's messages) */
+.bloccs-graph__node a { cursor: pointer; }
+.bloccs-graph__node a:hover .hex-glyph__body {
+  stroke: var(--bloccs-accent);
+  filter: drop-shadow(0 0 5px var(--bloccs-accent));
+}
+.bloccs-graph__node a:hover .bloccs-graph__label { fill: var(--bloccs-text); }
+/* an edge that carried a message recently: brighter + marching dashes */
+.bloccs-edge--active {
+  stroke: var(--bloccs-accent);
+  opacity: 0.95;
+  stroke-dasharray: 7 7;
+  animation: bloccs-flow 0.5s linear infinite;
+}
+@keyframes bloccs-flow { to { stroke-dashoffset: -14; } }
+@media (prefers-reduced-motion: reduce) {
+  .bloccs-edge--active { animation: none; }
+}
 .bloccs-legend {
   display: flex;
   flex-wrap: wrap;

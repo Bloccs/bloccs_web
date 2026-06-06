@@ -15,8 +15,10 @@ defmodule Bloccs.Web.Panels.TopologyTest do
     assert count(html, "hex-glyph--node") >= 3
     # the shared hexagon outline appears once per glyph
     assert count(html, "M0,-52") >= 3
-    # first → second → third = two edges
-    assert count(html, "bloccs-edge") == 2
+    # first → second → third = two edges (each path's class starts with
+    # "bloccs-edge"; live edges may append a "--active" modifier, so count the
+    # stable class prefix rather than the bare token).
+    assert count(html, ~s(class="bloccs-edge)) == 2
     # node labels
     assert html =~ ">first<" or html =~ "first"
     assert html =~ "third"

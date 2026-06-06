@@ -118,6 +118,7 @@ defmodule Bloccs.Web.DashboardLive do
      socket
      |> assign(:now, System.monotonic_time(:millisecond))
      |> assign(:page_title, page_title(socket.assigns.live_action, params))
+     |> assign(:flow_filters, %{node: blank(params["node"]), outcome: blank(params["outcome"])})
      |> load_panel(socket.assigns.live_action, params)}
   end
 
@@ -158,9 +159,12 @@ defmodule Bloccs.Web.DashboardLive do
     end
   end
 
-  defp maybe_subscribe(socket, action, network) when action in [:topology, :metrics],
-    do: subscribe_metrics(socket, network)
+  # The live topology reads both metric frames (node state + throughput) and the
+  # flow snapshot (which edges are active), so it subscribes to both.
+  defp maybe_subscribe(socket, :topology, network),
+    do: socket |> subscribe_metrics(network) |> subscribe_flow(network)
 
+  defp maybe_subscribe(socket, :metrics, network), do: subscribe_metrics(socket, network)
   defp maybe_subscribe(socket, :messages, network), do: subscribe_flow(socket, network)
   defp maybe_subscribe(socket, _action, _network), do: socket
 
@@ -280,7 +284,13 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp panel_body(%{live_action: :topology} = assigns) do
     ~H"""
-    <Panels.Topology.render network={@network} base_path={@base_path} states={@node_states} />
+    <Panels.Topology.render
+      network={@network}
+      base_path={@base_path}
+      states={@node_states}
+      frame={@frame}
+      flow={@flow}
+    />
     """
   end
 

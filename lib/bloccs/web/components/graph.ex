@@ -24,6 +24,8 @@ defmodule Bloccs.Web.Components.Graph do
   attr :rates, :map, default: %{}
   attr :active_edges, :any, default: nil
   attr :link_base, :string, default: nil
+  # %{node_id => tooltip string} shown as the node's hover <title>
+  attr :titles, :map, default: %{}
   # false hides labels/rates (for compact thumbnails)
   attr :labels, :boolean, default: true
   # nil = no coverage overlay; a MapSet of {from_node, to_node} = reached edges
@@ -45,10 +47,21 @@ defmodule Bloccs.Web.Components.Graph do
         <g class="bloccs-graph__edges">
           <path
             :for={e <- @layout.edges}
+            id={"#{@network.id}-#{e.from}-#{e.to}"}
             class={["bloccs-edge", edge_class(@reached_edges, e), active_class(@active_edges, e)]}
             d={e.path}
             fill="none"
           />
+        </g>
+        <%!-- packets: a dot rides each active edge from source to target --%>
+        <g class="bloccs-graph__packets">
+          <%= for e <- @layout.edges, active?(@active_edges, e), p <- packets(@rates, e) do %>
+            <circle class="bloccs-packet" r="4">
+              <animateMotion dur={p.dur} begin={p.begin} repeatCount="indefinite" rotate="auto">
+                <mpath href={"##{@network.id}-#{e.from}-#{e.to}"} />
+              </animateMotion>
+            </circle>
+          <% end %>
         </g>
         <g class="bloccs-graph__nodes">
           <g :for={n <- @layout.nodes} class="bloccs-graph__node">
@@ -58,6 +71,7 @@ defmodule Bloccs.Web.Components.Graph do
                   n={n}
                   state={Map.get(@states, n.id, :idle)}
                   rate={Map.get(@rates, n.id)}
+                  title={Map.get(@titles, n.id, n.label)}
                   labels={@labels}
                 />
               </.link>
@@ -66,6 +80,7 @@ defmodule Bloccs.Web.Components.Graph do
                 n={n}
                 state={Map.get(@states, n.id, :idle)}
                 rate={Map.get(@rates, n.id)}
+                title={Map.get(@titles, n.id, n.label)}
                 labels={@labels}
               />
             <% end %>
@@ -79,11 +94,12 @@ defmodule Bloccs.Web.Components.Graph do
   attr :n, :map, required: true
   attr :state, :atom, default: :idle
   attr :rate, :any, default: nil
+  attr :title, :string, default: nil
   attr :labels, :boolean, default: true
 
   defp node_cell(assigns) do
     ~H"""
-    <.hex_glyph glyph={@n.glyph} state={@state} label={@n.label} x={@n.x} y={@n.y} />
+    <.hex_glyph glyph={@n.glyph} state={@state} label={@title || @n.label} x={@n.x} y={@n.y} />
     <text :if={@labels} class="bloccs-graph__label" x={@n.x} y={@n.y + 70} text-anchor="middle">
       {@n.label}
     </text>
@@ -112,5 +128,19 @@ defmodule Bloccs.Web.Components.Graph do
 
   defp active_class(active, %{from: f, to: t}) do
     if MapSet.member?(active, {f, t}), do: "bloccs-edge--active", else: nil
+  end
+
+  defp active?(nil, _edge), do: false
+  defp active?(active, %{from: f, to: t}), do: MapSet.member?(active, {f, t})
+
+  # One or more packets per active edge, their count and speed scaled by the
+  # source node's throughput, staggered so they form a steady stream.
+  defp packets(rates, %{from: from}) do
+    rate = Map.get(rates, from, 0)
+    count = 1 + min(2, trunc(rate / 4))
+    dur = Float.round(max(0.9, 2.2 - rate * 0.08), 2)
+    spacing = dur / count
+
+    for i <- 0..(count - 1), do: %{dur: "#{dur}s", begin: "#{Float.round(i * spacing, 2)}s"}
   end
 end

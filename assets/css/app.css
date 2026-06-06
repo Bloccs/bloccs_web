@@ -215,16 +215,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   filter: drop-shadow(0 0 5px var(--bloccs-accent));
 }
 .bloccs-graph__node a:hover .bloccs-graph__label { fill: var(--bloccs-text); }
-/* an edge that carried a message recently: brighter + marching dashes */
+/* an edge that carried a message recently: brighter, with packets riding it */
 .bloccs-edge--active {
   stroke: var(--bloccs-accent);
-  opacity: 0.95;
-  stroke-dasharray: 7 7;
-  animation: bloccs-flow 0.5s linear infinite;
+  opacity: 0.8;
 }
-@keyframes bloccs-flow { to { stroke-dashoffset: -14; } }
+.bloccs-packet {
+  fill: var(--bloccs-accent);
+  filter: drop-shadow(0 0 4px var(--bloccs-accent));
+}
 @media (prefers-reduced-motion: reduce) {
-  .bloccs-edge--active { animation: none; }
+  .bloccs-packet { display: none; }
 }
 .bloccs-legend {
   display: flex;
@@ -235,6 +236,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   font-size: 0.82rem;
 }
 .bloccs-legend__item { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* topology summary strip */
+.bloccs-topo-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.85rem;
+  color: var(--bloccs-muted);
+}
+.bloccs-topo-summary strong { color: var(--bloccs-text); font-variant-numeric: tabular-nums; }
 
 /* metrics panel */
 .bloccs-node-id { display: inline-flex; align-items: center; gap: 0.5rem; }

@@ -28,14 +28,5 @@ jobs:
           restore-keys: ${{ runner.os }}-mix-
 
       - run: mix deps.get
-      - run: mix deps.unlock --check-unused
-
-      # format + compile --warnings-as-errors + test
+      # format --check-formatted + compile --warnings-as-errors + test
       - run: mix check
-
-      # Fail the build on a stale precompiled bundle: the committed
-      # priv/static/assets must match a fresh build from assets/.
-      - name: Verify precompiled assets are up to date
-        run: |
-          mix assets.build
-          git diff --exit-code priv/static

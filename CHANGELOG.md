@@ -4,24 +4,18 @@ All notable changes to `bloccs_web` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-06-06
+
+First release. A self-hosted, observe-only Phoenix LiveView dashboard for running
+bloccs networks, mounted into a host app with one router macro (the oban_web
+model). Requires `bloccs ~> 0.3`.
 
 ### Added
 
 - **Message payloads in the Messages feed.** When `Bloccs.Inspect` capture is
   enabled (bloccs 0.3+), the feed shows a bounded, redacted snapshot of each
   message's payload in a new column, read from the `:payload` key on the
-  `[:bloccs, :emit]` telemetry. A hint appears when capture is off. Requires
-  `bloccs ~> 0.3` (the dep is a local path until 0.3.0 is on Hex).
-
-### Changed
-
-- **Licensed under Apache License 2.0** (matching the `bloccs` library; adds an
-  explicit patent grant). The dashboard has not been published yet, so this is
-  the license it ships under.
-
-### Added
-
+  `[:bloccs, :emit]` telemetry. A hint appears when capture is off.
 - **Messages panel** — a live view of packages moving through a network. A
   server-rendered throughput chart over per-second buckets plus a scrolling feed
   of recent edge traversals (`from.port → to.port`), each with its outcome and
@@ -64,6 +58,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Precompiled-asset packaging (the oban_web model): `assets/` is dev-only and
     excluded from the Hex package; the committed `priv/static/assets` bundles
     ship in the release.
+- **Licensed under Apache License 2.0**, matching the `bloccs` library (adds an
+  explicit patent grant).
 
-> **Note:** requires `bloccs ~> 0.2`. Before that is on Hex, develop locally with
-> a path override (`{:bloccs, path: "../bloccs"}`).
+[0.1.0]: https://github.com/Bloccs/bloccs_web/releases/tag/v0.1.0

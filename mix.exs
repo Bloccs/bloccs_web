@@ -19,8 +19,9 @@ defmodule Bloccs.Web.MixProject do
           "topology, live per-node metrics, and coverage, mounted into your Phoenix app.",
       name: "bloccs_web",
       source_url: @source_url,
+      homepage_url: @source_url,
       docs: docs(),
-      preferred_cli_env: ["assets.verify": :dev]
+      preferred_cli_env: [check: :test, "assets.verify": :dev]
     ]
   end
 
@@ -63,7 +64,12 @@ defmodule Bloccs.Web.MixProject do
   defp package do
     [
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @source_url, "bloccs" => "https://github.com/Bloccs/bloccs"},
+      maintainers: ["Allan MacGregor"],
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
+        "bloccs" => "https://github.com/Bloccs/bloccs"
+      },
       files: ~w(lib priv guides mix.exs README.md LICENSE NOTICE CHANGELOG.md)
     ]
   end
@@ -78,6 +84,12 @@ defmodule Bloccs.Web.MixProject do
 
   defp aliases do
     [
+      # Release gate, parity with app/bloccs: format + warnings-as-errors + tests.
+      check: [
+        "format --check-formatted",
+        "compile --warnings-as-errors",
+        "test"
+      ],
       # Run the local dashboard harness: `mix dev` → http://localhost:4000/bloccs
       dev: ["run dev.exs"],
       # Rebuild the committed asset bundles from the dev-only `assets/` tree.

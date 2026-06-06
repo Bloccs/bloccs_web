@@ -61,7 +61,8 @@ defmodule Bloccs.Web.DashboardLive do
        recording: nil,
        net_graphs: %{},
        net_stats: %{},
-       overview_ids: []
+       overview_ids: [],
+       selected_msg: nil
      )
      # `.bloccs-trace` has no registered MIME type, so accept :any and validate
      # the contents on load instead of by extension.
@@ -81,6 +82,16 @@ defmodule Bloccs.Web.DashboardLive do
   def handle_event("flow_filter", params, socket) do
     filters = %{node: blank(params["node"]), outcome: blank(params["outcome"])}
     {:noreply, assign(socket, :flow_filters, filters)}
+  end
+
+  def handle_event("inspect_msg", %{"idx" => idx}, socket) do
+    events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
+    event = Enum.at(events, String.to_integer(idx))
+
+    selected =
+      if event && Panels.Messages.same?(event, socket.assigns.selected_msg), do: nil, else: event
+
+    {:noreply, assign(socket, :selected_msg, selected)}
   end
 
   @impl true
@@ -122,6 +133,7 @@ defmodule Bloccs.Web.DashboardLive do
      |> assign(:now, System.monotonic_time(:millisecond))
      |> assign(:page_title, page_title(socket.assigns.live_action, params))
      |> assign(:flow_filters, %{node: blank(params["node"]), outcome: blank(params["outcome"])})
+     |> assign(:selected_msg, nil)
      |> load_panel(socket.assigns.live_action, params)}
   end
 
@@ -383,6 +395,7 @@ defmodule Bloccs.Web.DashboardLive do
       base_path={@base_path}
       flow={@flow}
       filters={@flow_filters}
+      selected={@selected_msg}
     />
     """
   end

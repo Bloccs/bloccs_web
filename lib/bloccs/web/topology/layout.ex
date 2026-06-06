@@ -18,6 +18,10 @@ defmodule Bloccs.Web.Topology.Layout do
   # half the hexagon's width (the glyph path spans ±52 around its center)
   @half 52
   @bend 60
+  # Room below the last node's center for its label (drawn at y + 74 in
+  # `Bloccs.Web.Components.Graph`) plus the text height and a little padding —
+  # otherwise a single-row graph's labels fall outside the SVG and get clipped.
+  @label_gap 100
 
   @type placed_node :: %{
           id: atom(),
@@ -95,7 +99,7 @@ defmodule Bloccs.Web.Topology.Layout do
 
   defp height(positions) do
     max_row = positions |> Map.values() |> Enum.map(fn {_l, r} -> r end) |> Enum.max(fn -> 0 end)
-    @margin * 2 + max_row * @row_h
+    @margin + max_row * @row_h + @label_gap
   end
 
   defp edge_path({fx, fy}, {tx, ty}) do

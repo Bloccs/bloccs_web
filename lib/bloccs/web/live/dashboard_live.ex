@@ -59,7 +59,6 @@ defmodule Bloccs.Web.DashboardLive do
        flow_filters: %{node: nil, outcome: nil},
        coverage: nil,
        recording: nil,
-       net_graphs: %{},
        net_stats: %{},
        overview_ids: [],
        selected_msg: nil
@@ -162,7 +161,6 @@ defmodule Bloccs.Web.DashboardLive do
 
     socket
     |> assign(:networks, networks)
-    |> assign(:net_graphs, Map.new(networks, &{&1.id, fetch_graph(&1.id)}))
     |> assign(:net_stats, Map.new(networks, &{&1.id, net_stat(&1.id)}))
     |> subscribe_overview(networks)
   end
@@ -205,22 +203,13 @@ defmodule Bloccs.Web.DashboardLive do
     Phoenix.PubSub.unsubscribe(@pubsub, Collector.topic(id))
   end
 
-  defp fetch_graph(id) do
-    case Introspect.network(id) do
-      {:ok, network} -> network
-      _ -> nil
-    end
-  end
-
   defp net_stat(id) do
     frame = Collector.snapshot(id)
-
-    %{
-      rate: Collector.flow_snapshot(id).rate,
-      errors: total_errors(frame),
-      states: node_states(frame)
-    }
+    flow = Collector.flow_snapshot(id)
+    %{rate: flow.rate, series: series_totals(flow.series), errors: total_errors(frame)}
   end
+
+  defp series_totals(series), do: Enum.map(series, &Map.get(&1, :total, 0))
 
   defp total_errors(%{nodes: nodes}),
     do: nodes |> Map.values() |> Enum.map(&Map.get(&1, :errors, 0)) |> Enum.sum()
@@ -236,8 +225,8 @@ defmodule Bloccs.Web.DashboardLive do
       {:ok, cur} ->
         updated =
           case change do
-            [flow: flow] -> %{cur | rate: flow.rate}
-            [frame: frame] -> %{cur | errors: total_errors(frame), states: node_states(frame)}
+            [flow: flow] -> %{cur | rate: flow.rate, series: series_totals(flow.series)}
+            [frame: frame] -> %{cur | errors: total_errors(frame)}
           end
 
         assign(socket, :net_stats, Map.put(stats, network, updated))
@@ -358,7 +347,6 @@ defmodule Bloccs.Web.DashboardLive do
       networks={@networks}
       base_path={@base_path}
       now={@now}
-      graphs={@net_graphs}
       stats={@net_stats}
     />
     """

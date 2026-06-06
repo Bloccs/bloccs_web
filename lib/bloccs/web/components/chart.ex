@@ -59,6 +59,43 @@ defmodule Bloccs.Web.Components.Chart do
     """
   end
 
+  @sw 84
+  @sh 22
+
+  attr :values, :list, required: true
+
+  @doc "A tiny inline sparkline for a list of numbers (per-node throughput, etc.)."
+  def sparkline(assigns) do
+    values = assigns.values || []
+    max = values |> Enum.max(fn -> 0 end) |> max(1)
+    n = max(length(values), 1)
+
+    pts =
+      values
+      |> Enum.with_index()
+      |> Enum.map_join(" ", fn {v, i} ->
+        sx = if n == 1, do: @sw, else: Float.round(i / (n - 1) * @sw, 1)
+        sy = Float.round(@sh - 1 - v / max * (@sh - 2), 1)
+        "#{sx},#{sy}"
+      end)
+
+    assigns =
+      assign(assigns, sw: @sw, sh: @sh, pts: pts, empty: values == [] or Enum.sum(values) == 0)
+
+    ~H"""
+    <svg
+      class="bloccs-spark"
+      viewBox={"0 0 #{@sw} #{@sh}"}
+      width={@sw}
+      height={@sh}
+      aria-hidden="true"
+    >
+      <polyline :if={not @empty} class="bloccs-spark__line" points={@pts} fill="none" />
+      <line :if={@empty} class="bloccs-spark__zero" x1="0" y1={@sh - 1} x2={@sw} y2={@sh - 1} />
+    </svg>
+    """
+  end
+
   defp x(i, n), do: i / max(n - 1, 1) * @w
   defp y(v, max), do: @h - v / max * (@h - @pad_top - @pad_bottom) - @pad_bottom
 

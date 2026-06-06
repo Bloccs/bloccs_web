@@ -160,6 +160,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   border-bottom: 1px solid var(--bloccs-line);
 }
 .bloccs-table .bloccs-num { text-align: right; font-variant-numeric: tabular-nums; }
+.bloccs-row { transition: background 120ms ease; }
 .bloccs-row:hover { background: var(--bloccs-surface); }
 
 /* topology graph */
@@ -172,7 +173,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
     var(--bloccs-bg);
   padding: 0.5rem;
 }
-.bloccs-graph__svg { display: block; }
+.bloccs-graph__svg { display: block; margin: 0 auto; }
 .bloccs-edge {
   stroke: var(--bloccs-purple);
   stroke-width: 2;
@@ -265,11 +266,16 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   display: block;
   border: 1px solid var(--bloccs-line);
   border-radius: 10px;
-  background: var(--bloccs-surface);
+  background:
+    linear-gradient(var(--bloccs-surface), var(--bloccs-surface)) padding-box,
+    var(--bloccs-bg);
   margin-bottom: 1rem;
 }
-.bloccs-chart__area { fill: rgba(124, 55, 171, 0.45); stroke: var(--bloccs-accent); stroke-width: 1.5; }
+.bloccs-chart__baseline { stroke: var(--bloccs-line); stroke-width: 1; }
+.bloccs-chart__area { fill: url(#bloccs-chart-grad); stroke: none; }
+.bloccs-chart__line { stroke: var(--bloccs-accent); stroke-width: 1.5; }
 .bloccs-chart__fail { stroke: var(--bloccs-fail); stroke-width: 1.5; }
+.bloccs-chart__dot { fill: var(--bloccs-accent); }
 .bloccs-chart__peak { fill: var(--bloccs-muted); font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
 
 .bloccs-msg-filters {
@@ -293,7 +299,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .bloccs-feed__payload {
   font-family: ui-monospace, Menlo, monospace;
   font-size: 0.82rem;
-  color: var(--bloccs-accent);
+  color: #c8bfe0;
   max-width: 26rem;
   overflow: hidden;
   text-overflow: ellipsis;

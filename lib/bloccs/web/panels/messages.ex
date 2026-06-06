@@ -70,7 +70,7 @@ defmodule Bloccs.Web.Panels.Messages do
           <tr :for={e <- @events} class="bloccs-row">
             <td class="bloccs-feed__time">{time(e.at)}</td>
             <td class="bloccs-feed__edge">{edge(e)}</td>
-            <td class="bloccs-feed__payload">{payload(e)}</td>
+            <td class="bloccs-feed__payload" title={payload_full(e)}>{payload(e)}</td>
             <td><.status_pill state={pill(e.outcome)} label={Atom.to_string(e.outcome)} /></td>
             <td class="bloccs-num">{Format.latency(e.duration_ms)}</td>
           </tr>
@@ -106,8 +106,20 @@ defmodule Bloccs.Web.Panels.Messages do
 
   defp node_ids(%{nodes: nodes}), do: nodes |> Enum.map(& &1.id) |> Enum.sort()
 
-  defp payload(%{payload: p}) when is_binary(p), do: p
+  defp payload(%{payload: p}) when is_binary(p), do: strip_map(p)
   defp payload(_), do: "—"
+
+  # Full payload for the hover tooltip (un-stripped).
+  defp payload_full(%{payload: p}) when is_binary(p), do: p
+  defp payload_full(_), do: nil
+
+  # Drop the outer `%{ … }` so the column reads `id: "c-9", text: …` not Elixir
+  # map syntax. Leaves anything that isn't a plain map inspect untouched.
+  defp strip_map("%{" <> rest = full) do
+    if String.ends_with?(rest, "}"), do: binary_part(rest, 0, byte_size(rest) - 1), else: full
+  end
+
+  defp strip_map(other), do: other
 
   defp edge(%{out_port: nil, node: node}), do: "#{node}"
   defp edge(%{node: node, out_port: port, to: nil}), do: "#{node}.#{port} → ·"

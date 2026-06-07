@@ -37,10 +37,11 @@ defmodule Bloccs.Web.MixProject do
 
   defp deps do
     [
-      # The library being observed. Needs the `:payload` emit metadata from
-      # bloccs 0.3.0 (Bloccs.Inspect). For local dev against an unreleased bloccs,
-      # override with a path dep: {:bloccs, path: "../bloccs"}
-      {:bloccs, "~> 0.3"},
+      # The library being observed. Needs `Introspect.node_view/1`'s :contract +
+      # :config fields from bloccs 0.4.0 (the topology inspector's code/primitive
+      # panel). For local dev against an unreleased bloccs, override with a path
+      # dep: {:bloccs, path: "../bloccs"}
+      {:bloccs, "~> 0.4"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.1"},

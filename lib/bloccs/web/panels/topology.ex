@@ -269,16 +269,26 @@ defmodule Bloccs.Web.Panels.Topology do
 
   defp retry(_), do: "—"
 
-  # Human one-liners for whichever primitive blocks the node declares.
-  defp prim_config(config) when is_map(config) do
+  @doc """
+  Human one-liners for whichever primitive blocks a node declares (`batch`,
+  `join`, `rate`, `delay`). Values may be `Bloccs.Manifest.*` structs, which do
+  not implement `Access`, so they're read with `Map.get/2`, not bracket syntax.
+  """
+  def prim_config(config) when is_map(config) do
     []
-    |> add_if(config[:batch], "batch", fn b -> "size #{b[:size]} · #{b[:timeout_ms]}ms" end)
-    |> add_if(config[:join], "join", fn j -> "on #{j[:on]} · #{j[:timeout_ms]}ms" end)
-    |> add_if(config[:rate], "rate", fn r -> "#{r[:allowed]} / #{r[:interval_ms]}ms" end)
+    |> add_if(config[:batch], "batch", fn b ->
+      "size #{Map.get(b, :size)} · #{Map.get(b, :timeout_ms)}ms"
+    end)
+    |> add_if(config[:join], "join", fn j ->
+      "on #{Map.get(j, :on)} · #{Map.get(j, :timeout_ms)}ms"
+    end)
+    |> add_if(config[:rate], "rate", fn r ->
+      "#{Map.get(r, :allowed)} / #{Map.get(r, :interval_ms)}ms"
+    end)
     |> add_if(config[:delay_ms], "delay", fn ms -> "#{ms}ms" end)
   end
 
-  defp prim_config(_), do: []
+  def prim_config(_), do: []
 
   defp add_if(acc, nil, _label, _fmt), do: acc
   defp add_if(acc, val, label, fmt), do: acc ++ [{label, fmt.(val)}]

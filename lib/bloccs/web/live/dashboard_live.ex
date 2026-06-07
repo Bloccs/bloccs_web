@@ -97,6 +97,21 @@ defmodule Bloccs.Web.DashboardLive do
     {:noreply, assign(socket, :selected_msg, nil)}
   end
 
+  def handle_event("msg_nav", %{"dir" => dir}, socket) do
+    {:noreply, nav_msg(socket, dir)}
+  end
+
+  def handle_event("msg_key", %{"key" => "ArrowUp"}, socket),
+    do: {:noreply, nav_msg(socket, "prev")}
+
+  def handle_event("msg_key", %{"key" => "ArrowDown"}, socket),
+    do: {:noreply, nav_msg(socket, "next")}
+
+  def handle_event("msg_key", %{"key" => "Escape"}, socket),
+    do: {:noreply, assign(socket, :selected_msg, nil)}
+
+  def handle_event("msg_key", _params, socket), do: {:noreply, socket}
+
   def handle_event("inspect_msg", %{"idx" => idx}, socket) do
     events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
     event = Enum.at(events, String.to_integer(idx))
@@ -132,6 +147,23 @@ defmodule Bloccs.Web.DashboardLive do
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # Step the open message to its neighbour in the (filtered) feed. Resolved live,
+  # so it works whether or not the feed is paused.
+  defp nav_msg(%{assigns: %{selected_msg: nil}} = socket, _dir), do: socket
+
+  defp nav_msg(socket, dir) do
+    events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
+
+    with i when is_integer(i) <-
+           Enum.find_index(events, &Panels.Messages.same?(&1, socket.assigns.selected_msg)),
+         j when j >= 0 <- if(dir == "prev", do: i - 1, else: i + 1),
+         ev when is_map(ev) <- Enum.at(events, j) do
+      assign(socket, :selected_msg, ev)
+    else
+      _ -> socket
+    end
+  end
 
   @impl true
   def terminate(_reason, socket) do

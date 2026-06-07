@@ -30,6 +30,10 @@ defmodule Bloccs.Web.Panels.Messages do
       assigns
       |> assign(:events, events)
       |> assign(:any_payload, Enum.any?(events, & &1[:payload]))
+      |> assign(
+        :sel_idx,
+        assigns.selected && Enum.find_index(events, &same?(&1, assigns.selected))
+      )
 
     ~H"""
     <section class="bloccs-messages">
@@ -106,9 +110,9 @@ defmodule Bloccs.Web.Panels.Messages do
 
       <%!-- message inspector: a right-side drawer, so the live feed never pushes it --%>
       <div :if={@selected} class="bloccs-drawer-scrim" phx-click="close_msg" />
-      <aside :if={@selected} class="bloccs-drawer">
+      <aside :if={@selected} class="bloccs-drawer" phx-window-keydown="msg_key">
         <header class="bloccs-drawer__head">
-          <div>
+          <div class="bloccs-drawer__heading">
             <div class="bloccs-drawer__title">{edge(@selected)}</div>
             <div class="bloccs-drawer__sub">
               <.status_pill
@@ -116,13 +120,54 @@ defmodule Bloccs.Web.Panels.Messages do
                 label={Atom.to_string(@selected.outcome)}
               />
               <span class="bloccs-muted">{Format.latency(@selected.duration_ms)}</span>
-              <span class="bloccs-muted">{time(@selected.at)}</span>
             </div>
           </div>
-          <button type="button" class="bloccs-drawer__x" phx-click="close_msg" aria-label="Close">
-            ×
-          </button>
+          <div class="bloccs-drawer__actions">
+            <span class="bloccs-drawer__pos">{pos_label(@sel_idx, @events)}</span>
+            <button
+              type="button"
+              class="bloccs-iconbtn"
+              phx-click="msg_nav"
+              phx-value-dir="prev"
+              disabled={@sel_idx in [nil, 0]}
+              title="Newer (↑)"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              class="bloccs-iconbtn"
+              phx-click="msg_nav"
+              phx-value-dir="next"
+              disabled={@sel_idx == nil or @sel_idx >= length(@events) - 1}
+              title="Older (↓)"
+            >
+              ↓
+            </button>
+            <button type="button" class="bloccs-drawer__x" phx-click="close_msg" title="Close (Esc)">
+              ×
+            </button>
+          </div>
         </header>
+
+        <div class="bloccs-drawer__section">
+          <h3>Details</h3>
+          <div class="bloccs-kv">
+            <span class="bloccs-muted">from</span><code>{from_label(@selected)}</code>
+          </div>
+          <div class="bloccs-kv">
+            <span class="bloccs-muted">to</span><code>{to_label(@selected)}</code>
+          </div>
+          <div class="bloccs-kv">
+            <span class="bloccs-muted">outcome</span><code>{@selected.outcome}</code>
+          </div>
+          <div class="bloccs-kv">
+            <span class="bloccs-muted">latency</span><code>{Format.latency(@selected.duration_ms)}</code>
+          </div>
+          <div class="bloccs-kv">
+            <span class="bloccs-muted">at</span><code>{time(@selected.at)}</code>
+          </div>
+        </div>
 
         <div class="bloccs-drawer__section">
           <h3>Payload</h3>
@@ -191,6 +236,15 @@ defmodule Bloccs.Web.Panels.Messages do
   defp edge(%{out_port: nil, node: node}), do: "#{node}"
   defp edge(%{node: node, out_port: port, to: nil}), do: "#{node}.#{port} → ·"
   defp edge(%{node: node, out_port: port, to: {tn, tp}}), do: "#{node}.#{port} → #{tn}.#{tp}"
+
+  defp from_label(%{node: n, out_port: nil}), do: "#{n}"
+  defp from_label(%{node: n, out_port: p}), do: "#{n}.#{p}"
+
+  defp to_label(%{to: {tn, tp}}), do: "#{tn}.#{tp}"
+  defp to_label(_), do: "·"
+
+  defp pos_label(nil, _events), do: "—"
+  defp pos_label(idx, events), do: "#{idx + 1} of #{length(events)}"
 
   defp pill(:ok), do: :ok
   defp pill(o) when o in [:dropped, :skipped], do: :idle

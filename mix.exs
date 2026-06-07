@@ -37,11 +37,12 @@ defmodule Bloccs.Web.MixProject do
 
   defp deps do
     [
-      # The library being observed. Needs `Introspect.node_view/1`'s :contract +
-      # :config fields from bloccs 0.4.0 (the topology inspector's code/primitive
+      # The library being observed. Needs bloccs 0.5.0 for per-message lineage in
+      # `[:bloccs, :emit]` (msg_id/parents/trace_id — the Messages journey view)
+      # plus 0.4.0's introspect contract/config (the topology code/primitive
       # panel). For local dev against an unreleased bloccs, override with a path
       # dep: {:bloccs, path: "../bloccs"}
-      {:bloccs, "~> 0.4"},
+      {:bloccs, "~> 0.5"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.1"},

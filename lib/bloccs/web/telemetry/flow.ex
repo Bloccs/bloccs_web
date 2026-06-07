@@ -16,7 +16,12 @@ defmodule Bloccs.Web.Telemetry.Flow do
   @type endpoint :: {atom(), atom()}
   @type outcome :: :ok | :failed | :dropped | :skipped | :retry | :dispatch_error
 
-  @typedoc "A normalized flow event (before timestamping)."
+  @typedoc """
+  A normalized flow event (before timestamping). `msg_id` / `parents` /
+  `trace_id` are the emitted message's `Bloccs.Lineage` (bloccs 0.5+): `msg_id`
+  is this message, `parents` the input id(s) that caused it (many on a fan-in),
+  `trace_id` the root correlation. They let one message be tracked across hops.
+  """
   @type event :: %{
           node: atom(),
           out_port: atom() | nil,
@@ -24,7 +29,10 @@ defmodule Bloccs.Web.Telemetry.Flow do
           outcome: outcome(),
           duration_ms: number() | nil,
           reason: term() | nil,
-          payload: String.t() | nil
+          payload: String.t() | nil,
+          msg_id: pos_integer() | nil,
+          parents: [pos_integer()],
+          trace_id: pos_integer() | nil
         }
 
   @type t :: %{recent: [map()], buckets: %{integer() => map()}}
@@ -70,7 +78,83 @@ defmodule Bloccs.Web.Telemetry.Flow do
     }
   end
 
+  @doc """
+  The lineage **journey** of `msg_id`: every recorded event in its connected
+  causal component — ancestors (via `parents`) and descendants (events that list
+  it as a parent), transitively — ordered oldest-first. Branches and merges to
+  match the topology, so a fan-in (batch/join) journey includes all the inputs
+  that were combined. Bounded by what is still in the recent ring.
+  """
+  @spec journey([map()], pos_integer() | nil) :: [map()]
+  def journey(_events, nil), do: []
+
+  def journey(events, msg_id) do
+    ids = connected_ids(events, msg_id)
+
+    events
+    |> Enum.filter(&(&1[:msg_id] in ids))
+    # `msg_id` is monotonic with actual emit creation, so it orders hops causally
+    # regardless of when each was recorded (an aggregate node's emit is flushed
+    # late, so its `at` lags). Events without an id sort last, by `at`.
+    |> Enum.sort_by(&{is_nil(&1[:msg_id]), &1[:msg_id] || 0, &1.at})
+  end
+
+  @doc """
+  One representative event per distinct message (`trace_id`), in feed order
+  (newest first). The basis for stepping Prev/Next between *messages* rather than
+  feed rows — keyed on `trace_id`, so a selection never drifts as the feed moves.
+  """
+  @spec messages([map()]) :: [map()]
+  def messages(events) do
+    {reps, _seen} =
+      Enum.reduce(events, {[], MapSet.new()}, fn e, {acc, seen} ->
+        t = e[:trace_id]
+
+        if is_nil(t) or MapSet.member?(seen, t),
+          do: {acc, seen},
+          else: {[e | acc], MapSet.put(seen, t)}
+      end)
+
+    Enum.reverse(reps)
+  end
+
   # ---- internals ----
+
+  # The set of msg_ids reachable from `start` along parent/child lineage edges.
+  defp connected_ids(events, start) do
+    {up, down} =
+      Enum.reduce(events, {%{}, %{}}, fn e, {up, down} ->
+        mid = e[:msg_id]
+        ps = e[:parents] || []
+
+        up =
+          if mid,
+            do: Map.update(up, mid, MapSet.new(ps), &MapSet.union(&1, MapSet.new(ps))),
+            else: up
+
+        down =
+          if mid,
+            do:
+              Enum.reduce(
+                ps,
+                down,
+                &Map.update(&2, &1, MapSet.new([mid]), fn s -> MapSet.put(s, mid) end)
+              ),
+            else: down
+
+        {up, down}
+      end)
+
+    bfs([start], MapSet.new([start]), up, down)
+  end
+
+  defp bfs([], seen, _up, _down), do: seen
+
+  defp bfs([n | rest], seen, up, down) do
+    neighbors = MapSet.union(Map.get(up, n, MapSet.new()), Map.get(down, n, MapSet.new()))
+    fresh = MapSet.difference(neighbors, seen)
+    bfs(rest ++ MapSet.to_list(fresh), MapSet.union(seen, fresh), up, down)
+  end
 
   defp classify(:ok), do: :ok
   defp classify(:failed), do: :failed

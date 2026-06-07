@@ -44,7 +44,15 @@ defmodule Bloccs.Web.Telemetry.Handler do
   def handle([:bloccs, :emit], _measurements, metadata, _config) do
     case Process.get(@buf) do
       %{emits: emits} = buf ->
-        emit = {metadata[:from_port], metadata[:targets] || [], metadata[:payload]}
+        emit = %{
+          port: metadata[:from_port],
+          targets: metadata[:targets] || [],
+          payload: metadata[:payload],
+          msg_id: metadata[:msg_id],
+          parents: metadata[:parents] || [],
+          trace_id: metadata[:trace_id]
+        }
+
         Process.put(@buf, %{buf | emits: [emit | emits]})
 
       _ ->
@@ -77,7 +85,14 @@ defmodule Bloccs.Web.Telemetry.Handler do
 
   # ---- flow correlation ----
 
-  defp flow(:start, _measurements, meta, _collector, _network) do
+  defp flow(:start, _measurements, meta, collector, network) do
+    # Aggregate nodes (batch/join) emit but never send `:stop`, so their buffered
+    # emits would never flush. A node's pipeline process only ever runs that one
+    # node, so any buffer still open when the next message starts belongs to the
+    # previous (aggregate) message — flush it now (outcome :ok, no per-message
+    # latency, since an aggregate has none). Transforms delete their buffer on
+    # `:stop`, so there is nothing to flush here for them.
+    flush_orphan(collector, network)
     Process.put(@buf, %{node: meta.node, emits: []})
     :ok
   end
@@ -92,6 +107,8 @@ defmodule Bloccs.Web.Telemetry.Handler do
 
   defp flow(kind, _measurements, meta, collector, network)
        when kind in [:dropped, :skipped, :retry, :dispatch_error] do
+    # No emit, so no descendant lineage — but the input message's id (when the
+    # node processes one message) anchors this terminal event in its journey.
     Collector.record_flow(collector, network, %{
       node: meta.node,
       out_port: nil,
@@ -99,8 +116,37 @@ defmodule Bloccs.Web.Telemetry.Handler do
       outcome: kind,
       duration_ms: nil,
       reason: nil,
-      payload: nil
+      payload: nil,
+      msg_id: meta[:msg_id],
+      parents: [],
+      trace_id: nil
     })
+  end
+
+  # Flush an aggregate node's emits left buffered (no `:stop` arrives for them).
+  defp flush_orphan(collector, network) do
+    case Process.get(@buf) do
+      %{node: node, emits: [_ | _] = emits} ->
+        Process.delete(@buf)
+
+        for emit <- Enum.reverse(emits), target <- targets_or_nil(emit.targets) do
+          Collector.record_flow(collector, network, %{
+            node: node,
+            out_port: emit.port,
+            to: target,
+            outcome: :ok,
+            duration_ms: nil,
+            reason: nil,
+            payload: emit.payload,
+            msg_id: emit.msg_id,
+            parents: emit.parents,
+            trace_id: emit.trace_id
+          })
+        end
+
+      _ ->
+        :ok
+    end
   end
 
   defp flush(collector, network, node, outcome, duration, reason) do
@@ -112,15 +158,18 @@ defmodule Bloccs.Web.Telemetry.Handler do
 
     Process.delete(@buf)
 
-    for {port, targets, payload} <- normalize_emits(emits), target <- targets_or_nil(targets) do
+    for emit <- normalize_emits(emits), target <- targets_or_nil(emit.targets) do
       Collector.record_flow(collector, network, %{
         node: node,
-        out_port: port,
+        out_port: emit.port,
         to: target,
         outcome: outcome,
         duration_ms: duration,
         reason: reason,
-        payload: payload
+        payload: emit.payload,
+        msg_id: emit.msg_id,
+        parents: emit.parents,
+        trace_id: emit.trace_id
       })
     end
 
@@ -129,7 +178,9 @@ defmodule Bloccs.Web.Telemetry.Handler do
 
   # A node that emitted nothing (failed/dropped before emit, or terminal) still
   # produces one row so the failure is visible.
-  defp normalize_emits([]), do: [{nil, [], nil}]
+  defp normalize_emits([]),
+    do: [%{port: nil, targets: [], payload: nil, msg_id: nil, parents: [], trace_id: nil}]
+
   defp normalize_emits(emits), do: emits
 
   defp targets_or_nil([]), do: [nil]

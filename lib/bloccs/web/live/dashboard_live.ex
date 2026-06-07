@@ -15,7 +15,7 @@ defmodule Bloccs.Web.DashboardLive do
   alias Bloccs.{Introspect, Trace}
   alias Bloccs.Web.{Access, Coverage, Paths}
   alias Bloccs.Web.Panels
-  alias Bloccs.Web.Telemetry.Collector
+  alias Bloccs.Web.Telemetry.{Collector, Flow}
 
   @pubsub Bloccs.Web.PubSub
 
@@ -122,6 +122,16 @@ defmodule Bloccs.Web.DashboardLive do
     {:noreply, assign(socket, :selected_msg, selected)}
   end
 
+  # Re-center the drawer on a specific hop of the open message's journey.
+  def handle_event("inspect_hop", %{"msgid" => msgid, "to" => to}, socket) do
+    events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
+
+    case Panels.Messages.find_hop(events, msgid, to) do
+      nil -> {:noreply, socket}
+      hop -> {:noreply, assign(socket, :selected_msg, hop)}
+    end
+  end
+
   @impl true
   def handle_event("coverage_record", _params, %{assigns: %{network: net}} = socket)
       when not is_nil(net) do
@@ -148,18 +158,20 @@ defmodule Bloccs.Web.DashboardLive do
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
-  # Step the open message to its neighbour in the (filtered) feed. Resolved live,
-  # so it works whether or not the feed is paused.
+  # Step to the previous/next distinct *message* (by trace), not a feed row, so
+  # the selection tracks a message and never drifts as the feed moves. Resolved
+  # live, so it works whether or not the feed is paused.
   defp nav_msg(%{assigns: %{selected_msg: nil}} = socket, _dir), do: socket
 
   defp nav_msg(socket, dir) do
     events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
+    msgs = Flow.messages(events)
+    sel_trace = socket.assigns.selected_msg[:trace_id]
 
-    with i when is_integer(i) <-
-           Enum.find_index(events, &Panels.Messages.same?(&1, socket.assigns.selected_msg)),
+    with i when is_integer(i) <- Enum.find_index(msgs, &(&1[:trace_id] == sel_trace)),
          j when j >= 0 <- if(dir == "prev", do: i - 1, else: i + 1),
-         ev when is_map(ev) <- Enum.at(events, j) do
-      assign(socket, :selected_msg, ev)
+         rep when is_map(rep) <- Enum.at(msgs, j) do
+      assign(socket, :selected_msg, rep)
     else
       _ -> socket
     end

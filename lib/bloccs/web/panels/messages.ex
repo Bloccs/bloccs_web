@@ -15,6 +15,7 @@ defmodule Bloccs.Web.Panels.Messages do
   import Bloccs.Web.Components.{Chart, Graph}
 
   alias Bloccs.Web.Format
+  alias Bloccs.Web.Telemetry.Flow
 
   attr :network, :any, required: true
   attr :base_path, :string, required: true
@@ -25,15 +26,19 @@ defmodule Bloccs.Web.Panels.Messages do
 
   def render(assigns) do
     events = filtered(assigns.flow.events, assigns.filters)
+    # Distinct messages (by trace) drive Prev/Next; the position is the selected
+    # message's place among them — stable, so it never drifts under the live feed.
+    msgs = Flow.messages(events)
+    sel_trace = assigns.selected && assigns.selected[:trace_id]
+    msg_idx = sel_trace && Enum.find_index(msgs, &(&1[:trace_id] == sel_trace))
 
     assigns =
       assigns
       |> assign(:events, events)
       |> assign(:any_payload, Enum.any?(events, & &1[:payload]))
-      |> assign(
-        :sel_idx,
-        assigns.selected && Enum.find_index(events, &same?(&1, assigns.selected))
-      )
+      |> assign(:msg_count, length(msgs))
+      |> assign(:msg_idx, msg_idx)
+      |> assign(:journey, assigns.selected && Flow.journey(events, assigns.selected[:msg_id]))
 
     ~H"""
     <section class="bloccs-messages">
@@ -129,7 +134,39 @@ defmodule Bloccs.Web.Panels.Messages do
 
         <div class="bloccs-drawer__body">
           <div class="bloccs-drawer__section">
-            <h3>Details</h3>
+            <h3>
+              Journey <span :if={@journey != []} class="bloccs-muted">· {length(@journey)} hops</span>
+            </h3>
+            <div class="bloccs-drawer__graph">
+              <.graph
+                network={@network}
+                states={journey_states(@journey)}
+                active_edges={journey_edges(@journey)}
+                selected={@selected.node}
+                labels={false}
+              />
+            </div>
+            <ol class="bloccs-journey">
+              <li
+                :for={hop <- @journey}
+                class={["bloccs-journey__hop", same?(hop, @selected) && "is-selected"]}
+                phx-click="inspect_hop"
+                phx-value-msgid={hop.msg_id}
+                phx-value-to={hop_token(hop)}
+              >
+                <span class="bloccs-journey__time">{time(hop.at)}</span>
+                <span class="bloccs-journey__edge">{edge(hop)}</span>
+                <.status_pill state={pill(hop.outcome)} label={Atom.to_string(hop.outcome)} />
+                <span class="bloccs-journey__lat bloccs-num">{Format.latency(hop.duration_ms)}</span>
+              </li>
+            </ol>
+            <p :if={@journey in [nil, []]} class="bloccs-muted">
+              No lineage recorded for this message (it may have aged out of the feed).
+            </p>
+          </div>
+
+          <div class="bloccs-drawer__section">
+            <h3>Selected hop</h3>
             <div class="bloccs-kv">
               <span class="bloccs-muted">from</span><code>{from_label(@selected)}</code>
             </div>
@@ -152,27 +189,16 @@ defmodule Bloccs.Web.Panels.Messages do
             <h3>Payload</h3>
             <pre class="bloccs-detail__payload">{payload_full(@selected) || "(payload capture disabled — config :bloccs, :inspect, enabled: true)"}</pre>
           </div>
-
-          <div class="bloccs-drawer__section">
-            <h3>Path</h3>
-            <div class="bloccs-drawer__graph">
-              <.graph
-                network={@network}
-                states={hop_states(@selected)}
-                active_edges={hop_edge(@selected)}
-                labels={false}
-              />
-            </div>
-          </div>
         </div>
 
         <footer class="bloccs-drawer__nav">
+          <span class="bloccs-drawer__pos">{msg_pos(@msg_idx, @msg_count)}</span>
           <button
             type="button"
             class="bloccs-btn bloccs-drawer__navbtn"
             phx-click="msg_nav"
             phx-value-dir="prev"
-            disabled={@sel_idx in [nil, 0]}
+            disabled={@msg_idx in [nil, 0]}
           >
             ← Prev
           </button>
@@ -181,7 +207,7 @@ defmodule Bloccs.Web.Panels.Messages do
             class="bloccs-btn bloccs-drawer__navbtn"
             phx-click="msg_nav"
             phx-value-dir="next"
-            disabled={@sel_idx == nil or @sel_idx >= length(@events) - 1}
+            disabled={@msg_idx == nil or @msg_idx >= @msg_count - 1}
           >
             Next →
           </button>
@@ -200,11 +226,21 @@ defmodule Bloccs.Web.Panels.Messages do
 
   def filtered(events, _), do: events
 
-  @doc "Whether a flow event is the currently-selected one (stable across live updates)."
+  @doc "Find the journey hop with this `msg_id` (string) and edge `to` token. Used by the live view."
+  def find_hop(events, msgid, to_token) do
+    Enum.find(events, fn e -> to_string(e[:msg_id]) == msgid and hop_token(e) == to_token end)
+  end
+
+  @doc """
+  Whether a flow event is the currently-selected one. Identified by its lineage
+  `msg_id` plus the edge `to` (one emit can fan to several edges → same msg_id,
+  distinct rows) and `at` (a node may re-emit the same id is not expected, but
+  `at` keeps it exact). Stable across live feed updates.
+  """
   def same?(_e, nil), do: false
 
   def same?(e, s),
-    do: e.at == s.at and e.node == s.node and e.out_port == s.out_port
+    do: e[:msg_id] == s[:msg_id] and e.to == s.to and e.at == s.at and e.node == s.node
 
   defp reject_blank(events, _key, v, _match) when v in [nil, ""], do: events
   defp reject_blank(events, _key, v, match), do: Enum.filter(events, &match.(&1, v))
@@ -227,12 +263,32 @@ defmodule Bloccs.Web.Panels.Messages do
 
   defp strip_map(other), do: other
 
-  # Highlight the from/to nodes of this hop on the mini-topology.
-  defp hop_states(%{node: n, to: {tn, _tp}}), do: %{n => :running, tn => :running}
-  defp hop_states(%{node: n}), do: %{n => :running}
+  # Highlight every node + edge the message touched across its whole journey.
+  defp journey_states(journey) when is_list(journey) do
+    Enum.reduce(journey, %{}, fn e, acc ->
+      acc = Map.put(acc, e.node, :running)
 
-  defp hop_edge(%{node: n, to: {tn, _tp}}), do: MapSet.new([{n, tn}])
-  defp hop_edge(_), do: MapSet.new()
+      case e.to do
+        {tn, _tp} -> Map.put(acc, tn, :running)
+        _ -> acc
+      end
+    end)
+  end
+
+  defp journey_states(_), do: %{}
+
+  defp journey_edges(journey) when is_list(journey) do
+    for %{to: {tn, _tp}, node: n} <- journey, into: MapSet.new(), do: {n, tn}
+  end
+
+  defp journey_edges(_), do: MapSet.new()
+
+  # A stable token identifying a hop's edge, for `inspect_hop` clicks.
+  defp hop_token(%{to: {tn, tp}}), do: "#{tn}.#{tp}"
+  defp hop_token(_), do: ""
+
+  defp msg_pos(nil, _count), do: "—"
+  defp msg_pos(idx, count), do: "message #{idx + 1} of #{count}"
 
   defp edge(%{out_port: nil, node: node}), do: "#{node}"
   defp edge(%{node: node, out_port: port, to: nil}), do: "#{node}.#{port} → ·"

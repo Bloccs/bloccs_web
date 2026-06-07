@@ -21,6 +21,7 @@ defmodule Bloccs.Web.Panels.Messages do
   attr :flow, :map, default: %{events: [], series: [], rate: 0}
   attr :filters, :map, default: %{node: nil, outcome: nil}
   attr :selected, :any, default: nil
+  attr :paused, :boolean, default: false
 
   def render(assigns) do
     events = filtered(assigns.flow.events, assigns.filters)
@@ -34,9 +35,15 @@ defmodule Bloccs.Web.Panels.Messages do
     <section class="bloccs-messages">
       <header class="bloccs-panel__header">
         <h1>Messages</h1>
-        <span class="bloccs-muted">
-          <span class="bloccs-live">●</span> live · {@flow.rate}/s
-        </span>
+        <div class="bloccs-msg-live">
+          <span :if={not @paused} class="bloccs-muted">
+            <span class="bloccs-live">●</span> live · {@flow.rate}/s
+          </span>
+          <span :if={@paused} class="bloccs-paused">⏸ paused</span>
+          <button type="button" class="bloccs-btn bloccs-btn--sm" phx-click="toggle_pause">
+            {if @paused, do: "▶ Resume", else: "⏸ Pause"}
+          </button>
+        </div>
       </header>
 
       <.throughput series={@flow.series} />

@@ -1,17 +1,17 @@
 defmodule Bloccs.Web.Components.Chart do
   @moduledoc """
-  A tiny server-rendered SVG throughput chart for the Messages panel: a filled
-  gradient area for total events/second with a red overlay line for failures and
-  a dot on the latest value. No client charting library — the series is computed
-  by `Bloccs.Web.Telemetry.Flow` and redrawn each frame.
+  Server-rendered SVG charts for the Messages panel — no client charting library.
+  `throughput/1` is an events-per-second volume chart (one bar per 1s bucket,
+  failures stacked in red, à la Sentry); `sparkline/1` is a tiny inline line.
+  The series is computed by `Bloccs.Web.Telemetry.Flow` and redrawn each frame.
   """
 
   use Phoenix.Component
 
   @w 720
-  @h 72
-  @pad_top 16
-  @pad_bottom 4
+  @h 80
+  @pad_top 14
+  @pad_bottom 1
 
   attr :series, :list, required: true
 
@@ -19,19 +19,36 @@ defmodule Bloccs.Web.Components.Chart do
     series = assigns.series
     max = series |> Enum.map(& &1.total) |> Enum.max(fn -> 0 end) |> max(1)
     n = max(length(series), 1)
-    last = List.last(series)
+    bw = @w / n
+    plot = @h - @pad_top - @pad_bottom
+
+    bars =
+      series
+      |> Enum.with_index()
+      |> Enum.map(fn {b, i} ->
+        total_h = b.total / max * plot
+        fail_h = (b[:failed] || 0) / max * plot
+
+        %{
+          x: Float.round(i * bw + bw * 0.12, 2),
+          w: Float.round(bw * 0.76, 2),
+          total_y: Float.round(@h - @pad_bottom - total_h, 2),
+          total_h: Float.round(total_h, 2),
+          fail_y: Float.round(@h - @pad_bottom - fail_h, 2),
+          fail_h: Float.round(fail_h, 2),
+          total: b.total,
+          failed: b[:failed] || 0
+        }
+      end)
 
     assigns =
-      assigns
-      |> assign(:w, @w)
-      |> assign(:h, @h)
-      |> assign(:max, max)
-      |> assign(:area, area_path(series, n, max))
-      |> assign(:line, line_path(series, n, max, & &1.total))
-      |> assign(:fail_line, line_path(series, n, max, & &1.failed))
-      |> assign(:last_x, if(last, do: Float.round(x(n - 1, n), 1), else: 0))
-      |> assign(:last_y, if(last, do: Float.round(y(last.total, max), 1), else: @h))
-      |> assign(:has_last, last != nil && last.total > 0)
+      assign(assigns,
+        w: @w,
+        h: @h,
+        max: max,
+        bars: bars,
+        empty: max <= 1 and total_of(series) == 0
+      )
 
     ~H"""
     <svg
@@ -43,21 +60,37 @@ defmodule Bloccs.Web.Components.Chart do
       role="img"
       aria-label="events per second"
     >
-      <defs>
-        <linearGradient id="bloccs-chart-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--bloccs-accent)" stop-opacity="0.5" />
-          <stop offset="100%" stop-color="var(--bloccs-accent)" stop-opacity="0.03" />
-        </linearGradient>
-      </defs>
       <line class="bloccs-chart__baseline" x1="0" y1={@h - 1} x2={@w} y2={@h - 1} />
-      <path class="bloccs-chart__area" d={@area} />
-      <path class="bloccs-chart__line" d={@line} fill="none" />
-      <path class="bloccs-chart__fail" d={@fail_line} fill="none" />
-      <circle :if={@has_last} class="bloccs-chart__dot" cx={@last_x} cy={@last_y} r="3" />
-      <text class="bloccs-chart__peak" x="8" y="15">peak {@max}/s</text>
+      <g :for={b <- @bars}>
+        <title>{b.total}/s{if b.failed > 0, do: " · #{b.failed} failed"}</title>
+        <rect
+          :if={b.total_h > 0}
+          class="bloccs-chart__bar"
+          x={b.x}
+          y={b.total_y}
+          width={b.w}
+          height={b.total_h}
+          rx="1"
+        />
+        <rect
+          :if={b.fail_h > 0}
+          class="bloccs-chart__bar-fail"
+          x={b.x}
+          y={b.fail_y}
+          width={b.w}
+          height={b.fail_h}
+          rx="1"
+        />
+      </g>
+      <text class="bloccs-chart__peak" x="8" y="14">peak {@max}/s</text>
+      <text :if={@empty} class="bloccs-chart__peak" x={@w / 2} y={@h / 2} text-anchor="middle">
+        waiting for traffic
+      </text>
     </svg>
     """
   end
+
+  defp total_of(series), do: series |> Enum.map(& &1.total) |> Enum.sum()
 
   @sw 84
   @sh 22
@@ -94,34 +127,5 @@ defmodule Bloccs.Web.Components.Chart do
       <line :if={@empty} class="bloccs-spark__zero" x1="0" y1={@sh - 1} x2={@sw} y2={@sh - 1} />
     </svg>
     """
-  end
-
-  defp x(i, n), do: i / max(n - 1, 1) * @w
-  defp y(v, max), do: @h - v / max * (@h - @pad_top - @pad_bottom) - @pad_bottom
-
-  defp area_path([], _n, _max), do: "M0,#{@h} L#{@w},#{@h} Z"
-
-  defp area_path(series, n, max) do
-    pts =
-      series
-      |> Enum.with_index()
-      |> Enum.map(fn {b, i} ->
-        "#{Float.round(x(i, n), 1)},#{Float.round(y(b.total, max), 1)}"
-      end)
-      |> Enum.join(" L")
-
-    "M0,#{@h} L#{pts} L#{@w},#{@h} Z"
-  end
-
-  defp line_path([], _n, _max, _getter), do: ""
-
-  defp line_path(series, n, max, getter) do
-    series
-    |> Enum.with_index()
-    |> Enum.map(fn {b, i} ->
-      "#{Float.round(x(i, n), 1)},#{Float.round(y(getter.(b), max), 1)}"
-    end)
-    |> Enum.join(" L")
-    |> then(&"M#{&1}")
   end
 end

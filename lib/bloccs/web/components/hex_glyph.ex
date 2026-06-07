@@ -9,7 +9,7 @@ defmodule Bloccs.Web.HexGlyph do
   by an assign — no client animation framework.
 
   Brand tokens (kept in sync with `marketing/notation-icons`):
-  fill `#1a1326`, stroke `#7c37ab`, accent `#c98bff`, mark `#fafafa`.
+  fill `#18181b`, stroke `#7028bd`, accent `#a78bfa`, mark `#fafafa`.
   """
 
   use Phoenix.Component
@@ -50,7 +50,7 @@ defmodule Bloccs.Web.HexGlyph do
       transform={"translate(#{@x},#{@y})"}
     >
       <title>{@label || Atom.to_string(@glyph)}</title>
-      <path class="hex-glyph__body" d={@hex_path} fill="#1a1326" stroke="#7c37ab" stroke-width="3" />
+      <path class="hex-glyph__body" d={@hex_path} fill="#18181b" stroke="#7028bd" stroke-width="3" />
       {inner(assigns)}
     </g>
     """
@@ -81,7 +81,7 @@ defmodule Bloccs.Web.HexGlyph do
 
   defp inner(%{glyph: :node} = assigns) do
     ~H"""
-    <circle cx="0" cy="0" r="3" fill="#7c37ab" />
+    <circle cx="0" cy="0" r="3" fill="#7028bd" />
     <.ports left={[0]} right={[0]} />
     """
   end
@@ -91,12 +91,12 @@ defmodule Bloccs.Web.HexGlyph do
     <path
       d="M0,-44 L38,-22 L38,22 L0,44 L-38,22 L-38,-22 Z"
       fill="none"
-      stroke="#7c37ab"
+      stroke="#7028bd"
       stroke-width="1.5"
       opacity="0.6"
     />
-    <circle cx="0" cy="0" r="3" fill="#7c37ab" />
-    <circle cx="0" cy="-52" r="6.5" fill="#c98bff" stroke="#09090b" stroke-width="2" />
+    <circle cx="0" cy="0" r="3" fill="#7028bd" />
+    <circle cx="0" cy="-52" r="6.5" fill="#a78bfa" stroke="#09090b" stroke-width="2" />
     <.ports left={[0]} right={[0]} />
     """
   end
@@ -104,7 +104,7 @@ defmodule Bloccs.Web.HexGlyph do
   defp inner(%{glyph: :source} = assigns) do
     ~H"""
     <g stroke="#fafafa" stroke-width="4.5" fill="none" stroke-linecap="round">
-      <circle cx="-8" cy="0" r="9" fill="#1a1326" stroke="#fafafa" stroke-width="3" />
+      <circle cx="-8" cy="0" r="9" fill="#18181b" stroke="#fafafa" stroke-width="3" />
       <line x1="6" y1="0" x2="30" y2="0" />
       <polyline points="22,-7 30,0 22,7" stroke-width="3" />
     </g>
@@ -116,7 +116,7 @@ defmodule Bloccs.Web.HexGlyph do
     ~H"""
     <g stroke="#fafafa" stroke-width="4.5" fill="none" stroke-linecap="round">
       <line x1="-30" y1="0" x2="-2" y2="0" />
-      <circle cx="10" cy="0" r="9" fill="#1a1326" stroke="#fafafa" stroke-width="3" />
+      <circle cx="10" cy="0" r="9" fill="#18181b" stroke="#fafafa" stroke-width="3" />
     </g>
     <.ports left={[0]} />
     """
@@ -126,7 +126,7 @@ defmodule Bloccs.Web.HexGlyph do
     ~H"""
     <g stroke="#fafafa" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <line x1="-34" y1="0" x2="-12" y2="0" />
-      <polygon points="-12,0 -4,-8 4,0 -4,8" fill="#1a1326" stroke="#fafafa" stroke-width="3" />
+      <polygon points="-12,0 -4,-8 4,0 -4,8" fill="#18181b" stroke="#fafafa" stroke-width="3" />
       <line x1="4" y1="0" x2="34" y2="-22" />
       <line x1="4" y1="0" x2="34" y2="22" />
     </g>
@@ -136,7 +136,7 @@ defmodule Bloccs.Web.HexGlyph do
 
   defp inner(%{glyph: :batch} = assigns) do
     ~H"""
-    <g fill="#1a1326" stroke="#fafafa" stroke-width="3">
+    <g fill="#18181b" stroke="#fafafa" stroke-width="3">
       <rect x="-26" y="-18" width="20" height="20" rx="3" />
       <rect x="-12" y="-9" width="20" height="20" rx="3" />
       <rect x="2" y="0" width="20" height="20" rx="3" />
@@ -150,7 +150,7 @@ defmodule Bloccs.Web.HexGlyph do
     <g stroke="#fafafa" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <line x1="-34" y1="-22" x2="-4" y2="0" />
       <line x1="-34" y1="22" x2="-4" y2="0" />
-      <polygon points="-4,0 4,-8 12,0 4,8" fill="#1a1326" stroke="#fafafa" stroke-width="3" />
+      <polygon points="-4,0 4,-8 12,0 4,8" fill="#18181b" stroke="#fafafa" stroke-width="3" />
       <line x1="12" y1="0" x2="34" y2="0" />
     </g>
     <.ports left={[-22, 22]} right={[0]} />
@@ -186,10 +186,10 @@ defmodule Bloccs.Web.HexGlyph do
   defp ports(assigns) do
     ~H"""
     <%= for y <- @left do %>
-      <circle cx="-45" cy={y} r="4" fill="#7c37ab" stroke="#09090b" stroke-width="1.5" />
+      <circle cx="-45" cy={y} r="4" fill="#7028bd" stroke="#09090b" stroke-width="1.5" />
     <% end %>
     <%= for y <- @right do %>
-      <circle cx="45" cy={y} r="4" fill="#7c37ab" stroke="#09090b" stroke-width="1.5" />
+      <circle cx="45" cy={y} r="4" fill="#7028bd" stroke="#09090b" stroke-width="1.5" />
     <% end %>
     """
   end

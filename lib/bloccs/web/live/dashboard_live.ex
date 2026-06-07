@@ -62,7 +62,8 @@ defmodule Bloccs.Web.DashboardLive do
        net_stats: %{},
        overview_ids: [],
        selected_msg: nil,
-       inspect_node: nil
+       inspect_node: nil,
+       flow_paused: false
      )
      # `.bloccs-trace` has no registered MIME type, so accept :any and validate
      # the contents on load instead of by extension.
@@ -75,13 +76,21 @@ defmodule Bloccs.Web.DashboardLive do
   end
 
   def handle_info({:bloccs_flow, network, flow}, socket) do
-    {:noreply, socket |> assign(:flow, flow) |> update_overview(network, flow: flow)}
+    # Always fold into the overview stats; freeze the live feed when paused so the
+    # user can inspect without rows scrolling away.
+    socket = update_overview(socket, network, flow: flow)
+    socket = if socket.assigns.flow_paused, do: socket, else: assign(socket, :flow, flow)
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("flow_filter", params, socket) do
     filters = %{node: blank(params["node"]), outcome: blank(params["outcome"])}
     {:noreply, assign(socket, :flow_filters, filters)}
+  end
+
+  def handle_event("toggle_pause", _params, socket) do
+    {:noreply, assign(socket, :flow_paused, not socket.assigns.flow_paused)}
   end
 
   def handle_event("inspect_msg", %{"idx" => idx}, socket) do
@@ -135,6 +144,7 @@ defmodule Bloccs.Web.DashboardLive do
      |> assign(:flow_filters, %{node: blank(params["node"]), outcome: blank(params["outcome"])})
      |> assign(:selected_msg, nil)
      |> assign(:inspect_node, blank(params["node"]))
+     |> assign(:flow_paused, false)
      |> load_panel(socket.assigns.live_action, params)}
   end
 
@@ -387,6 +397,7 @@ defmodule Bloccs.Web.DashboardLive do
       flow={@flow}
       filters={@flow_filters}
       selected={@selected_msg}
+      paused={@flow_paused}
     />
     """
   end

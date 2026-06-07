@@ -6,17 +6,20 @@
  * `mix assets.build` and verified in CI. Brand tokens mirror
  * marketing/notation-icons. */
 
+/* Brand palette aligned to bloccs.io (shadcn dark): near-black bg, NEUTRAL zinc
+   surfaces/borders, a violet brand, zinc-gray muted. The chromatic colour is the
+   violet — surfaces stay neutral so it reads. */
 :root {
-  --bloccs-bg: #09090b;
-  --bloccs-surface: #1a1326;
-  --bloccs-line: #2a2140;
-  --bloccs-purple: #7c37ab;
-  --bloccs-accent: #c98bff;
-  --bloccs-text: #fafafa;
-  --bloccs-muted: #a99fc0;
+  --bloccs-bg: #09090b; /* hsl(240 10% 3.9%) */
+  --bloccs-surface: #18181b; /* zinc-900 — card/row lift */
+  --bloccs-line: #27272a; /* zinc-800 — hsl(240 3.7% 15.9%) */
+  --bloccs-purple: #7028bd; /* bloccs.io primary hsl(270 68% 44%) */
+  --bloccs-accent: #a78bfa; /* violet-400 — highlights/active/links */
+  --bloccs-text: #fafafa; /* hsl(0 0% 98%) */
+  --bloccs-muted: #a1a1aa; /* zinc-400 — hsl(240 5% 64.9%) */
   --bloccs-ok: #3fb950;
   --bloccs-warn: #d29922;
-  --bloccs-fail: #f85149;
+  --bloccs-fail: #ef4444; /* bloccs.io destructive hsl(0 84% 60%) */
 }
 
 .bloccs-root,
@@ -79,8 +82,8 @@ body {
   color: var(--bloccs-text);
 }
 .bloccs-pill--ok { background: rgba(63, 185, 80, 0.18); color: var(--bloccs-ok); }
-.bloccs-pill--failed { background: rgba(248, 81, 73, 0.18); color: var(--bloccs-fail); }
-.bloccs-pill--running { background: rgba(201, 139, 255, 0.18); color: var(--bloccs-accent); }
+.bloccs-pill--failed { background: rgba(239, 68, 68, 0.18); color: var(--bloccs-fail); }
+.bloccs-pill--running { background: rgba(167, 139, 250, 0.18); color: var(--bloccs-accent); }
 
 /* metric badge */
 .bloccs-badge {
@@ -330,7 +333,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   min-width: 1.9rem;
   text-align: center;
 }
-.bloccs-portrow__dir--out { color: var(--bloccs-accent); border-color: rgba(201, 139, 255, 0.4); }
+.bloccs-portrow__dir--out { color: var(--bloccs-accent); border-color: rgba(167, 139, 250, 0.4); }
 .bloccs-portrow__name {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.82rem;
@@ -341,12 +344,12 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   border-radius: 999px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.74rem;
-  background: rgba(124, 55, 171, 0.18);
+  background: rgba(112, 40, 189, 0.22);
   color: var(--bloccs-accent);
 }
 .bloccs-chip--fx {
   margin: 0 0.3rem 0.3rem 0;
-  background: rgba(201, 139, 255, 0.16);
+  background: rgba(167, 139, 250, 0.16);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   font-size: 0.7rem;
@@ -368,7 +371,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   padding: 0.4rem 0.55rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78rem;
-  color: #c8bfe0;
+  color: #d4d4d8;
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -507,6 +510,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 
 /* messages panel */
 .bloccs-live { color: var(--bloccs-ok); animation: bloccs-pulse 1.4s ease-in-out infinite; }
+.bloccs-msg-live { display: flex; align-items: center; gap: 0.7rem; }
+.bloccs-paused { color: var(--bloccs-warn); font-size: 0.85rem; }
+.bloccs-btn--sm { padding: 0.18rem 0.6rem; font-size: 0.78rem; }
 @keyframes bloccs-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
 .bloccs-chart {
@@ -519,10 +525,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   margin-bottom: 1rem;
 }
 .bloccs-chart__baseline { stroke: var(--bloccs-line); stroke-width: 1; }
-.bloccs-chart__area { fill: url(#bloccs-chart-grad); stroke: none; }
-.bloccs-chart__line { stroke: var(--bloccs-accent); stroke-width: 1.5; }
-.bloccs-chart__fail { stroke: var(--bloccs-fail); stroke-width: 1.5; }
-.bloccs-chart__dot { fill: var(--bloccs-accent); }
+.bloccs-chart__bar { fill: var(--bloccs-accent); opacity: 0.8; transition: opacity 100ms; }
+.bloccs-chart g:hover .bloccs-chart__bar { opacity: 1; }
+.bloccs-chart__bar-fail { fill: var(--bloccs-fail); }
 .bloccs-chart__peak { fill: var(--bloccs-muted); font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
 
 .bloccs-msg-filters {
@@ -546,7 +551,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .bloccs-feed__payload {
   font-family: ui-monospace, Menlo, monospace;
   font-size: 0.82rem;
-  color: #c8bfe0;
+  color: #d4d4d8;
   max-width: 26rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -575,7 +580,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   border-radius: 8px;
   background: var(--bloccs-surface);
   border: 1px solid var(--bloccs-line);
-  color: #c8bfe0;
+  color: #d4d4d8;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.82rem;
   white-space: pre-wrap;

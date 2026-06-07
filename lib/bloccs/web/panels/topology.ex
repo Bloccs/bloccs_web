@@ -1,11 +1,14 @@
 defmodule Bloccs.Web.Panels.Topology do
   @moduledoc """
-  Panel 2 — the network graph drawn in the bloccs hexagon notation, alive, paired
-  with an inspector. The live graph (`Bloccs.Web.Components.Graph`) shows node
-  state, throughput, and packets moving along active edges. The side panel shows
-  the network's setup by default, and a clicked node's primitive details (kind,
-  ports, declared effects, concurrency) plus its live metrics. Selection is the
-  `?node=` URL param, so it's shareable and back-button friendly.
+  Panel 2 — the live network graph paired with an inspector.
+
+  The graph (`Bloccs.Web.Components.Graph`) shows node state, throughput, and
+  packets moving along active edges. The side panel inspects either the whole
+  network (setup + live totals) or a clicked node — its primitive (kind, ports,
+  effects), live metrics, and the **code** that implements it (the author's
+  `pure_core` / `effect_shell` plus any retry/idempotency/window policy). The
+  contract fields are read defensively, so this works against any `bloccs` that
+  predates them. Selection is the `?node=` URL param (shareable).
   """
 
   use Bloccs.Web, :html
@@ -59,7 +62,7 @@ defmodule Bloccs.Web.Panels.Topology do
           <.legend network={@network} />
         </div>
 
-        <aside class="bloccs-inspect">
+        <aside class="bloccs-ins">
           <%= if @selected_node do %>
             <.node_inspect
               node={@selected_node}
@@ -69,7 +72,7 @@ defmodule Bloccs.Web.Panels.Topology do
               topo={@topo_path}
             />
           <% else %>
-            <.network_inspect network={@network} nodes={@frame.nodes} rate={@flow.rate} />
+            <.network_inspect network={@network} nodes={@frame.nodes} />
           <% end %>
         </aside>
       </div>
@@ -86,52 +89,74 @@ defmodule Bloccs.Web.Panels.Topology do
   attr :topo, :string, required: true
 
   defp node_inspect(assigns) do
+    assigns =
+      assigns
+      |> assign(:contract, Map.get(assigns.node, :contract))
+      |> assign(:config, Map.get(assigns.node, :config, %{}))
+
     ~H"""
-    <div class="bloccs-inspect__head">
-      <svg viewBox="-60 -62 120 120" width="34" height="34">
-        <.hex_glyph glyph={@node.glyph} state={(@m && @m.state) || :idle} />
-      </svg>
-      <div>
-        <div class="bloccs-inspect__title">{@node.id}</div>
-        <div class="bloccs-inspect__sub">{@node.kind} · {@node.glyph}</div>
+    <header class="bloccs-ins__head">
+      <span class={["bloccs-ins__glyph", "hex-glyph--#{(@m && @m.state) || :idle}"]}>
+        <svg viewBox="-60 -62 120 120" width="40" height="40">
+          <.hex_glyph glyph={@node.glyph} state={(@m && @m.state) || :idle} />
+        </svg>
+      </span>
+      <div class="bloccs-ins__id">
+        <div class="bloccs-ins__name">{@node.id}</div>
+        <div class="bloccs-ins__kind">{@node.kind} · {@node.glyph}</div>
       </div>
-      <.link patch={@topo} class="bloccs-inspect__close" title="Back to network">×</.link>
+      <.link patch={@topo} class="bloccs-ins__x" title="Back to network">×</.link>
+    </header>
+
+    <p :if={@node.doc[:intent]} class="bloccs-ins__intent">{@node.doc.intent}</p>
+
+    <div class="bloccs-ins__tiles">
+      <.tile label="throughput" value={Format.rate(@m && @m.throughput)} />
+      <.tile label="p95" value={lat(@m, :p95)} />
+      <.tile label="completed" value={Format.count(@m && @m.completed)} />
+      <.tile label="errors" value={(@m && @m.errors) || 0} bad={@m && @m.errors > 0} />
     </div>
 
-    <p :if={@node.doc[:intent]} class="bloccs-inspect__intent">{@node.doc.intent}</p>
-
-    <div class="bloccs-inspect__stats">
-      <div><span class="bloccs-muted">throughput</span><b>{Format.rate(@m && @m.throughput)}</b></div>
-      <div><span class="bloccs-muted">p50 · p95</span><b>{lat(@m, :p50)} · {lat(@m, :p95)}</b></div>
-      <div><span class="bloccs-muted">completed</span><b>{Format.count(@m && @m.completed)}</b></div>
-      <div>
-        <span class="bloccs-muted">errors</span>
-        <b class={@m && @m.errors > 0 && "bloccs-num--error"}>{(@m && @m.errors) || 0}</b>
+    <.section title="Ports">
+      <div class="bloccs-ports">
+        <div :for={p <- @node.ports_in} class="bloccs-portrow">
+          <span class="bloccs-portrow__dir">in</span>
+          <span class="bloccs-portrow__name">{p.name}</span>
+          <span class="bloccs-chip">{p.schema}</span>
+        </div>
+        <div :for={p <- @node.ports_out} class="bloccs-portrow">
+          <span class="bloccs-portrow__dir bloccs-portrow__dir--out">out</span>
+          <span class="bloccs-portrow__name">{p.name}</span>
+          <span class="bloccs-chip">{p.schema}</span>
+        </div>
       </div>
-    </div>
-
-    <.section title="In">
-      <div :for={p <- @node.ports_in} class="bloccs-port">
-        <span class="bloccs-port__name">{p.name}</span>
-        <span class="bloccs-port__schema">{p.schema}</span>
-      </div>
-      <p :if={@node.ports_in == []} class="bloccs-muted">none (entry)</p>
-    </.section>
-
-    <.section title="Out">
-      <div :for={p <- @node.ports_out} class="bloccs-port">
-        <span class="bloccs-port__name">{p.name}</span>
-        <span class="bloccs-port__schema">{p.schema}</span>
-      </div>
-      <p :if={@node.ports_out == []} class="bloccs-muted">none (terminal)</p>
     </.section>
 
     <.section title="Effects">
-      <span :for={fx <- @node.effects} class="bloccs-fx">{fx}</span>
-      <span :if={@node.effects == []} class="bloccs-muted">pure — no declared effects</span>
+      <span :for={fx <- @node.effects} class="bloccs-chip bloccs-chip--fx">{fx}</span>
+      <span :if={@node.effects == []} class="bloccs-muted bloccs-ins__pure">
+        pure — no declared effects
+      </span>
     </.section>
 
-    <div class="bloccs-inspect__foot">
+    <.section :if={@contract} title="Code">
+      <.coderef label="pure core" ref={@contract[:pure_core]} />
+      <.coderef label="effect shell" ref={@contract[:effect_shell]} />
+      <div :if={@contract[:timeout_ms]} class="bloccs-kv">
+        <span class="bloccs-muted">timeout</span><code>{@contract.timeout_ms}ms</code>
+      </div>
+      <div :if={@contract[:retry]} class="bloccs-kv">
+        <span class="bloccs-muted">retry</span><code>{retry(@contract.retry)}</code>
+      </div>
+      <div :if={@contract[:idempotency]} class="bloccs-kv">
+        <span class="bloccs-muted">idempotency</span><code>key: {@contract.idempotency[:key]}</code>
+      </div>
+      <div :for={{label, val} <- prim_config(@config)} class="bloccs-kv">
+        <span class="bloccs-muted">{label}</span><code>{val}</code>
+      </div>
+    </.section>
+
+    <div class="bloccs-ins__foot">
       <span class="bloccs-muted">concurrency {@node.concurrency}</span>
       <.link navigate={Paths.messages(@base, @network_id) <> "?node=#{@node.id}"} class="bloccs-link">
         View messages →
@@ -144,7 +169,6 @@ defmodule Bloccs.Web.Panels.Topology do
 
   attr :network, :any, required: true
   attr :nodes, :map, default: %{}
-  attr :rate, :integer, default: 0
 
   defp network_inspect(assigns) do
     assigns =
@@ -153,21 +177,18 @@ defmodule Bloccs.Web.Panels.Topology do
       |> assign(:errors, assigns.nodes |> Map.values() |> Enum.map(& &1.errors) |> Enum.sum())
 
     ~H"""
-    <div class="bloccs-inspect__head">
-      <div>
-        <div class="bloccs-inspect__title">{@network.id}</div>
-        <div class="bloccs-inspect__sub">v{@network.version}</div>
+    <header class="bloccs-ins__head">
+      <div class="bloccs-ins__id">
+        <div class="bloccs-ins__name">{@network.id}</div>
+        <div class="bloccs-ins__kind">v{@network.version}</div>
       </div>
-    </div>
+    </header>
 
-    <div class="bloccs-inspect__stats">
-      <div><span class="bloccs-muted">throughput</span><b>{Format.rate(@total)}</b></div>
-      <div>
-        <span class="bloccs-muted">errors</span>
-        <b class={@errors > 0 && "bloccs-num--error"}>{@errors}</b>
-      </div>
-      <div><span class="bloccs-muted">nodes</span><b>{length(@network.nodes)}</b></div>
-      <div><span class="bloccs-muted">edges</span><b>{length(@network.edges)}</b></div>
+    <div class="bloccs-ins__tiles">
+      <.tile label="throughput" value={Format.rate(@total)} />
+      <.tile label="errors" value={@errors} bad={@errors > 0} />
+      <.tile label="nodes" value={length(@network.nodes)} />
+      <.tile label="edges" value={length(@network.edges)} />
     </div>
 
     <.section title="Supervision">
@@ -175,42 +196,92 @@ defmodule Bloccs.Web.Panels.Topology do
         <span class="bloccs-muted">strategy</span><code>{@network.supervision[:strategy]}</code>
       </div>
       <div class="bloccs-kv">
-        <span class="bloccs-muted">restarts</span>
+        <span class="bloccs-muted">restart limit</span>
         <code>{@network.supervision[:max_restarts]} / {@network.supervision[:max_seconds]}s</code>
       </div>
     </.section>
 
     <.section title="Inputs">
-      <div :for={{name, ep} <- Map.to_list(@network.expose.in)} class="bloccs-port">
-        <span class="bloccs-port__name">{name}</span>
-        <span class="bloccs-port__schema">{endpoint(ep)}</span>
+      <div :for={{name, ep} <- Map.to_list(@network.expose.in)} class="bloccs-portrow">
+        <span class="bloccs-portrow__name">{name}</span>
+        <span class="bloccs-chip">{endpoint(ep)}</span>
       </div>
       <p :if={@network.expose.in == %{}} class="bloccs-muted">none exposed</p>
     </.section>
 
     <.section title="Outputs">
-      <div :for={{name, ep} <- Map.to_list(@network.expose.out)} class="bloccs-port">
-        <span class="bloccs-port__name">{name}</span>
-        <span class="bloccs-port__schema">{endpoint(ep)}</span>
+      <div :for={{name, ep} <- Map.to_list(@network.expose.out)} class="bloccs-portrow">
+        <span class="bloccs-portrow__name">{name}</span>
+        <span class="bloccs-chip">{endpoint(ep)}</span>
       </div>
       <p :if={@network.expose.out == %{}} class="bloccs-muted">none exposed</p>
     </.section>
 
-    <p class="bloccs-muted bloccs-inspect__hint">Click a node to inspect its primitive.</p>
+    <p class="bloccs-muted bloccs-ins__hint">Click a node to inspect its primitive and code.</p>
+    """
+  end
+
+  # ---- small building blocks ----
+
+  attr :label, :string, required: true
+  attr :value, :any, required: true
+  attr :bad, :any, default: false
+
+  defp tile(assigns) do
+    ~H"""
+    <div class="bloccs-tile">
+      <div class={["bloccs-tile__v", @bad && "bloccs-num--error"]}>{@value}</div>
+      <div class="bloccs-tile__l">{@label}</div>
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :ref, :any, default: nil
+
+  defp coderef(assigns) do
+    ~H"""
+    <div :if={@ref} class="bloccs-coderef">
+      <div class="bloccs-coderef__l">{@label}</div>
+      <code class="bloccs-coderef__v">{@ref}</code>
+    </div>
     """
   end
 
   attr :title, :string, required: true
+  attr :rest, :global
   slot :inner_block, required: true
 
   defp section(assigns) do
     ~H"""
-    <div class="bloccs-inspect__section">
+    <div class="bloccs-ins__section" {@rest}>
       <h3>{@title}</h3>
       {render_slot(@inner_block)}
     </div>
     """
   end
+
+  defp retry(r) when is_map(r) do
+    parts = ["#{r[:strategy]}", "max #{r[:max]}"]
+    parts = if r[:base_ms], do: parts ++ ["base #{r[:base_ms]}ms"], else: parts
+    Enum.join(parts, ", ")
+  end
+
+  defp retry(_), do: "—"
+
+  # Human one-liners for whichever primitive blocks the node declares.
+  defp prim_config(config) when is_map(config) do
+    []
+    |> add_if(config[:batch], "batch", fn b -> "size #{b[:size]} · #{b[:timeout_ms]}ms" end)
+    |> add_if(config[:join], "join", fn j -> "on #{j[:on]} · #{j[:timeout_ms]}ms" end)
+    |> add_if(config[:rate], "rate", fn r -> "#{r[:allowed]} / #{r[:interval_ms]}ms" end)
+    |> add_if(config[:delay_ms], "delay", fn ms -> "#{ms}ms" end)
+  end
+
+  defp prim_config(_), do: []
+
+  defp add_if(acc, nil, _label, _fmt), do: acc
+  defp add_if(acc, val, label, fmt), do: acc ++ [{label, fmt.(val)}]
 
   defp lat(nil, _k), do: "—"
   defp lat(m, k), do: Format.latency(Map.get(m, k))
@@ -225,7 +296,6 @@ defmodule Bloccs.Web.Panels.Topology do
     base <> p95 <> errs
   end
 
-  # Edges that carried a message in the recent flow window — {from_node, to_node}.
   defp active_edges(%{events: events}) when is_list(events) do
     for %{node: n, to: {tn, _tp}} <- events, reduce: MapSet.new() do
       acc -> MapSet.put(acc, {n, tn})

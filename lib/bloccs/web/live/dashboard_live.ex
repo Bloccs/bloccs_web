@@ -431,8 +431,8 @@ defmodule Bloccs.Web.DashboardLive do
   defp panel_nav(assigns) do
     ~H"""
     <nav class="bloccs-nav">
-      <.link navigate={Paths.networks(@base_path)} class="bloccs-brand" aria-label="bloccs">
-        <img src={"#{@base_path}/assets/logo.svg"} alt="bloccs" class="bloccs-logo" />
+      <.link navigate={Paths.networks(@base_path)} class="bloccs-brand" aria-label="BloccsWeb">
+        <img src={"#{@base_path}/assets/logo.svg"} alt="BloccsWeb" class="bloccs-logo" />
       </.link>
       <.nav_link
         active={@active}

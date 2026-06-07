@@ -7,9 +7,9 @@
    xmlns="http://www.w3.org/2000/svg"
    id="svg3917"
    version="1.1"
-   viewBox="0 0 281.53009 62.900631"
+   viewBox="0 0 430 62.900631"
    height="62.900631mm"
-   width="281.53009mm">
+   width="430mm">
   <defs
      id="defs3911">
     <clipPath
@@ -103,4 +103,5 @@
       </g>
     </g>
   </g>
+  <text x="300" y="55.5" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="60" letter-spacing="-2" fill="#7c37ab">Web</text>
 </svg>

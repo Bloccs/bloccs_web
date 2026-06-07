@@ -431,7 +431,20 @@ defmodule Bloccs.Web.DashboardLive do
   defp panel_nav(assigns) do
     ~H"""
     <nav class="bloccs-nav">
-      <.link navigate={Paths.networks(@base_path)} class="bloccs-brand">bloccs</.link>
+      <.link navigate={Paths.networks(@base_path)} class="bloccs-brand" aria-label="bloccs">
+        <svg class="bloccs-logo" viewBox="-50 -56 100 112" width="22" height="25" aria-hidden="true">
+          <path
+            class="bloccs-logo__hex"
+            d="M0,-52 L45,-26 L45,26 L0,52 L-45,26 L-45,-26 Z"
+          />
+          <path
+            class="bloccs-logo__inner"
+            d="M0,-30 L26,-15 L26,15 L0,30 L-26,15 L-26,-15 Z"
+          />
+          <circle class="bloccs-logo__dot" cx="0" cy="0" r="5.5" />
+        </svg>
+        <span class="bloccs-wordmark">bloccs</span>
+      </.link>
       <.nav_link
         active={@active}
         action={:networks}

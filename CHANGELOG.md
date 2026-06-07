@@ -4,6 +4,45 @@ All notable changes to `bloccs_web` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-07
+
+Now requires `bloccs ~> 0.5` (per-message lineage + the introspect
+contract/config fields the panels render).
+
+### Added
+
+- **Live topology map.** The Topology panel animates packets moving along active
+  edges, with a summary strip and per-node hover stats. Clicking a node opens an
+  inspector showing its primitive (kind, ports with schemas, effects), live
+  metrics, and the **code** that implements it — `pure_core` / `effect_shell`
+  refs plus retry / idempotency / batch / join / rate / delay policy (from
+  `Bloccs.Introspect` contract/config, bloccs 0.4+).
+- **Message journey.** Selecting a message in the Messages panel opens a
+  right-side drawer that tracks it across the network via `bloccs` 0.5 lineage:
+  the full path highlighted on a mini-graph, the ordered list of hops it took
+  (branching/merging through split, batch, and join), and per-hop detail +
+  payload. Prev/Next (and ↑/↓) walk the message's hops; the journey is
+  snapshotted at selection so it never drifts as the live feed scrolls.
+- **Network overview cards** on the Networks panel — per-network sparkline,
+  rate, and error count.
+- **Richer Metrics panel** and a Sentry-style per-second **throughput volume
+  chart** (failures stacked) on Messages, with a **pause** control to freeze the
+  live feed for inspection.
+- **BloccsWeb brand** — the real bloccs mark + wordmark in the nav, and a palette
+  aligned to bloccs.io.
+
+### Changed
+
+- Requires `bloccs ~> 0.5` (was `~> 0.3`).
+
+### Fixed
+
+- Topology inspector no longer crashes selecting a `join`/`batch`/`rate` node
+  (read `Bloccs.Manifest.*` primitive structs with `Map.get/2`, not `Access`).
+- Aggregate nodes' emits (e.g. a join's output) now appear in the Messages feed,
+  so a fan-in journey is complete.
+- Node labels are no longer clipped in the topology / coverage graph.
+
 ## [0.1.0] - 2026-06-06
 
 First release. A self-hosted, observe-only Phoenix LiveView dashboard for running
@@ -61,4 +100,5 @@ model). Requires `bloccs ~> 0.3`.
 - **Licensed under Apache License 2.0**, matching the `bloccs` library (adds an
   explicit patent grant).
 
+[0.2.0]: https://github.com/Bloccs/bloccs_web/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Bloccs/bloccs_web/releases/tag/v0.1.0

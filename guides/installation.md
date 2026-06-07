@@ -9,8 +9,8 @@ CSS/JS, so you do **not** need Node, esbuild, or Tailwind in your app.
 # mix.exs
 def deps do
   [
-    {:bloccs, "~> 0.3"},
-    {:bloccs_web, "~> 0.1"}
+    {:bloccs, "~> 0.5"},
+    {:bloccs_web, "~> 0.2"}
   ]
 end
 ```
@@ -73,7 +73,7 @@ $ mix bloccs.compile my_network
 
 ## Local development of bloccs_web itself
 
-bloccs_web depends on the published `bloccs ~> 0.3`. To develop against an
+bloccs_web depends on the published `bloccs ~> 0.5`. To develop against an
 unreleased bloccs, point the dependency at a local checkout:
 
 ```elixir

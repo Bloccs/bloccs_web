@@ -93,6 +93,10 @@ defmodule Bloccs.Web.DashboardLive do
     {:noreply, assign(socket, :flow_paused, not socket.assigns.flow_paused)}
   end
 
+  def handle_event("close_msg", _params, socket) do
+    {:noreply, assign(socket, :selected_msg, nil)}
+  end
+
   def handle_event("inspect_msg", %{"idx" => idx}, socket) do
     events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
     event = Enum.at(events, String.to_integer(idx))

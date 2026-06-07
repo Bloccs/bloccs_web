@@ -89,29 +89,6 @@ defmodule Bloccs.Web.Panels.Messages do
               <td><.status_pill state={pill(e.outcome)} label={Atom.to_string(e.outcome)} /></td>
               <td class="bloccs-num">{Format.latency(e.duration_ms)}</td>
             </tr>
-            <tr :if={same?(e, @selected)} class="bloccs-feed__detail">
-              <td colspan="5">
-                <div class="bloccs-detail">
-                  <div class="bloccs-detail__main">
-                    <div class="bloccs-detail__meta">
-                      <span class="bloccs-detail__edge">{edge(e)}</span>
-                      <.status_pill state={pill(e.outcome)} label={Atom.to_string(e.outcome)} />
-                      <span class="bloccs-muted">{Format.latency(e.duration_ms)}</span>
-                      <span class="bloccs-muted">{time(e.at)}</span>
-                    </div>
-                    <pre class="bloccs-detail__payload">{payload_full(e) || "(payload capture disabled — config :bloccs, :inspect, enabled: true)"}</pre>
-                  </div>
-                  <div class="bloccs-detail__graph">
-                    <.graph
-                      network={@network}
-                      states={hop_states(e)}
-                      active_edges={hop_edge(e)}
-                      labels={false}
-                    />
-                  </div>
-                </div>
-              </td>
-            </tr>
           <% end %>
         </tbody>
       </table>
@@ -126,6 +103,44 @@ defmodule Bloccs.Web.Panels.Messages do
         <code>config :bloccs, :inspect, enabled: true</code>
         (bloccs 0.3+).
       </p>
+
+      <%!-- message inspector: a right-side drawer, so the live feed never pushes it --%>
+      <div :if={@selected} class="bloccs-drawer-scrim" phx-click="close_msg" />
+      <aside :if={@selected} class="bloccs-drawer">
+        <header class="bloccs-drawer__head">
+          <div>
+            <div class="bloccs-drawer__title">{edge(@selected)}</div>
+            <div class="bloccs-drawer__sub">
+              <.status_pill
+                state={pill(@selected.outcome)}
+                label={Atom.to_string(@selected.outcome)}
+              />
+              <span class="bloccs-muted">{Format.latency(@selected.duration_ms)}</span>
+              <span class="bloccs-muted">{time(@selected.at)}</span>
+            </div>
+          </div>
+          <button type="button" class="bloccs-drawer__x" phx-click="close_msg" aria-label="Close">
+            ×
+          </button>
+        </header>
+
+        <div class="bloccs-drawer__section">
+          <h3>Payload</h3>
+          <pre class="bloccs-detail__payload">{payload_full(@selected) || "(payload capture disabled — config :bloccs, :inspect, enabled: true)"}</pre>
+        </div>
+
+        <div class="bloccs-drawer__section">
+          <h3>Path</h3>
+          <div class="bloccs-drawer__graph">
+            <.graph
+              network={@network}
+              states={hop_states(@selected)}
+              active_edges={hop_edge(@selected)}
+              labels={false}
+            />
+          </div>
+        </div>
+      </aside>
     </section>
     """
   end

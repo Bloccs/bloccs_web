@@ -44,23 +44,9 @@ body {
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--bloccs-line);
 }
-.bloccs-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-}
-.bloccs-logo { display: block; flex: none; }
-.bloccs-logo__hex { fill: var(--bloccs-surface); stroke: var(--bloccs-purple); stroke-width: 6; }
-.bloccs-logo__inner { fill: none; stroke: var(--bloccs-accent); stroke-width: 4; opacity: 0.8; }
-.bloccs-logo__dot { fill: var(--bloccs-accent); }
-.bloccs-wordmark { color: var(--bloccs-text); font-size: 1.02rem; }
-.bloccs-brand:hover .bloccs-logo__hex {
-  stroke: var(--bloccs-accent);
-  filter: drop-shadow(0 0 4px var(--bloccs-purple));
-}
+.bloccs-brand { display: inline-flex; align-items: center; text-decoration: none; }
+.bloccs-logo { display: block; height: 22px; width: auto; }
+.bloccs-brand:hover .bloccs-logo { filter: drop-shadow(0 0 5px rgba(124, 55, 171, 0.6)); }
 .bloccs-nav__link {
   color: var(--bloccs-muted);
   cursor: default;

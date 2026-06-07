@@ -14,7 +14,7 @@ defmodule Bloccs.Web.Assets do
   @types %{
     "app.css" => "text/css",
     "app.js" => "application/javascript",
-    "logo.svg" => "image/svg+xml"
+    "mark.svg" => "image/svg+xml"
   }
 
   @impl true

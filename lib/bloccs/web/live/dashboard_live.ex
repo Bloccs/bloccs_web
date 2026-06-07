@@ -432,7 +432,8 @@ defmodule Bloccs.Web.DashboardLive do
     ~H"""
     <nav class="bloccs-nav">
       <.link navigate={Paths.networks(@base_path)} class="bloccs-brand" aria-label="BloccsWeb">
-        <img src={"#{@base_path}/assets/logo.svg"} alt="BloccsWeb" class="bloccs-logo" />
+        <img src={"#{@base_path}/assets/mark.svg"} alt="" class="bloccs-mark" />
+        <span class="bloccs-wordmark"><span class="bloccs-wm-thin">Bloccs</span>Web</span>
       </.link>
       <.nav_link
         active={@active}

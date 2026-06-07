@@ -44,9 +44,17 @@ body {
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--bloccs-line);
 }
-.bloccs-brand { display: inline-flex; align-items: center; text-decoration: none; }
-.bloccs-logo { display: block; height: 22px; width: auto; }
-.bloccs-brand:hover .bloccs-logo { filter: drop-shadow(0 0 5px rgba(124, 55, 171, 0.6)); }
+.bloccs-brand { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; }
+.bloccs-mark { display: block; height: 22px; width: auto; flex: none; }
+.bloccs-wordmark {
+  color: var(--bloccs-text);
+  font-size: 1.28rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.bloccs-wm-thin { font-weight: 500; }
+.bloccs-brand:hover .bloccs-mark { filter: drop-shadow(0 0 5px rgba(124, 55, 171, 0.6)); }
 .bloccs-nav__link {
   color: var(--bloccs-muted);
   cursor: default;

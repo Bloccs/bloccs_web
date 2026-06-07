@@ -15,30 +15,28 @@ defmodule Bloccs.Web.Panels.Messages do
   import Bloccs.Web.Components.{Chart, Graph}
 
   alias Bloccs.Web.Format
-  alias Bloccs.Web.Telemetry.Flow
 
   attr :network, :any, required: true
   attr :base_path, :string, required: true
   attr :flow, :map, default: %{events: [], series: [], rate: 0}
   attr :filters, :map, default: %{node: nil, outcome: nil}
   attr :selected, :any, default: nil
+  # The selected message's journey snapshot (lineage hops, oldest-first), taken at
+  # selection time by the live view so it persists as the feed scrolls. Prev/Next
+  # walks THIS list, so navigation follows the message and the position is stable.
+  attr :journey, :list, default: []
   attr :paused, :boolean, default: false
 
   def render(assigns) do
     events = filtered(assigns.flow.events, assigns.filters)
-    # Distinct messages (by trace) drive Prev/Next; the position is the selected
-    # message's place among them — stable, so it never drifts under the live feed.
-    msgs = Flow.messages(events)
-    sel_trace = assigns.selected && assigns.selected[:trace_id]
-    msg_idx = sel_trace && Enum.find_index(msgs, &(&1[:trace_id] == sel_trace))
+    hop_idx = assigns.selected && Enum.find_index(assigns.journey, &same?(&1, assigns.selected))
 
     assigns =
       assigns
       |> assign(:events, events)
       |> assign(:any_payload, Enum.any?(events, & &1[:payload]))
-      |> assign(:msg_count, length(msgs))
-      |> assign(:msg_idx, msg_idx)
-      |> assign(:journey, assigns.selected && Flow.journey(events, assigns.selected[:msg_id]))
+      |> assign(:hop_idx, hop_idx)
+      |> assign(:hop_count, length(assigns.journey))
 
     ~H"""
     <section class="bloccs-messages">
@@ -192,24 +190,24 @@ defmodule Bloccs.Web.Panels.Messages do
         </div>
 
         <footer class="bloccs-drawer__nav">
-          <span class="bloccs-drawer__pos">{msg_pos(@msg_idx, @msg_count)}</span>
+          <span class="bloccs-drawer__pos">{hop_pos(@hop_idx, @hop_count)}</span>
           <button
             type="button"
             class="bloccs-btn bloccs-drawer__navbtn"
             phx-click="msg_nav"
             phx-value-dir="prev"
-            disabled={@msg_idx in [nil, 0]}
+            disabled={@hop_idx in [nil, 0]}
           >
-            ← Prev
+            ← Prev hop
           </button>
           <button
             type="button"
             class="bloccs-btn bloccs-drawer__navbtn"
             phx-click="msg_nav"
             phx-value-dir="next"
-            disabled={@msg_idx == nil or @msg_idx >= @msg_count - 1}
+            disabled={@hop_idx == nil or @hop_idx >= @hop_count - 1}
           >
-            Next →
+            Next hop →
           </button>
         </footer>
       </aside>
@@ -287,8 +285,8 @@ defmodule Bloccs.Web.Panels.Messages do
   defp hop_token(%{to: {tn, tp}}), do: "#{tn}.#{tp}"
   defp hop_token(_), do: ""
 
-  defp msg_pos(nil, _count), do: "—"
-  defp msg_pos(idx, count), do: "message #{idx + 1} of #{count}"
+  defp hop_pos(nil, _count), do: "—"
+  defp hop_pos(idx, count), do: "hop #{idx + 1} of #{count}"
 
   defp edge(%{out_port: nil, node: node}), do: "#{node}"
   defp edge(%{node: node, out_port: port, to: nil}), do: "#{node}.#{port} → ·"

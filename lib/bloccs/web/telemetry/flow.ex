@@ -99,25 +99,6 @@ defmodule Bloccs.Web.Telemetry.Flow do
     |> Enum.sort_by(&{is_nil(&1[:msg_id]), &1[:msg_id] || 0, &1.at})
   end
 
-  @doc """
-  One representative event per distinct message (`trace_id`), in feed order
-  (newest first). The basis for stepping Prev/Next between *messages* rather than
-  feed rows — keyed on `trace_id`, so a selection never drifts as the feed moves.
-  """
-  @spec messages([map()]) :: [map()]
-  def messages(events) do
-    {reps, _seen} =
-      Enum.reduce(events, {[], MapSet.new()}, fn e, {acc, seen} ->
-        t = e[:trace_id]
-
-        if is_nil(t) or MapSet.member?(seen, t),
-          do: {acc, seen},
-          else: {[e | acc], MapSet.put(seen, t)}
-      end)
-
-    Enum.reverse(reps)
-  end
-
   # ---- internals ----
 
   # The set of msg_ids reachable from `start` along parent/child lineage edges.

@@ -96,29 +96,4 @@ defmodule Bloccs.Web.Telemetry.FlowTest do
       assert ids == [10, 20, 30, 31]
     end
   end
-
-  describe "messages/1" do
-    test "keeps one representative per trace, newest-first, dropping trace-less events" do
-      events = [
-        lev(5, [4], 2, 50),
-        lev(4, [3], 2, 40),
-        lev(9, [8], 7, 30),
-        %{
-          node: :x,
-          out_port: nil,
-          to: nil,
-          outcome: :dropped,
-          at: 20,
-          msg_id: 1,
-          parents: [],
-          trace_id: nil
-        }
-      ]
-
-      reps = Flow.messages(events)
-      assert Enum.map(reps, & &1.trace_id) == [2, 7]
-      # newest occurrence per trace is the representative
-      assert hd(reps).msg_id == 5
-    end
-  end
 end

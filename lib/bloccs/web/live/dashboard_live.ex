@@ -62,6 +62,7 @@ defmodule Bloccs.Web.DashboardLive do
        net_stats: %{},
        overview_ids: [],
        selected_msg: nil,
+       selected_journey: [],
        inspect_node: nil,
        flow_paused: false
      )
@@ -94,7 +95,7 @@ defmodule Bloccs.Web.DashboardLive do
   end
 
   def handle_event("close_msg", _params, socket) do
-    {:noreply, assign(socket, :selected_msg, nil)}
+    {:noreply, deselect(socket)}
   end
 
   def handle_event("msg_nav", %{"dir" => dir}, socket) do
@@ -108,7 +109,7 @@ defmodule Bloccs.Web.DashboardLive do
     do: {:noreply, nav_msg(socket, "next")}
 
   def handle_event("msg_key", %{"key" => "Escape"}, socket),
-    do: {:noreply, assign(socket, :selected_msg, nil)}
+    do: {:noreply, deselect(socket)}
 
   def handle_event("msg_key", _params, socket), do: {:noreply, socket}
 
@@ -116,17 +117,20 @@ defmodule Bloccs.Web.DashboardLive do
     events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
     event = Enum.at(events, String.to_integer(idx))
 
-    selected =
-      if event && Panels.Messages.same?(event, socket.assigns.selected_msg), do: nil, else: event
-
-    {:noreply, assign(socket, :selected_msg, selected)}
+    if event && Panels.Messages.same?(event, socket.assigns.selected_msg) do
+      {:noreply, deselect(socket)}
+    else
+      # Snapshot the message's journey at selection time, so the open drawer
+      # persists and navigates stably even as the live feed scrolls it out of
+      # the recent ring.
+      journey = if event, do: Flow.journey(events, event[:msg_id]), else: []
+      {:noreply, socket |> assign(:selected_msg, event) |> assign(:selected_journey, journey)}
+    end
   end
 
-  # Re-center the drawer on a specific hop of the open message's journey.
+  # Re-center the drawer on a specific hop of the open message's journey snapshot.
   def handle_event("inspect_hop", %{"msgid" => msgid, "to" => to}, socket) do
-    events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
-
-    case Panels.Messages.find_hop(events, msgid, to) do
+    case Panels.Messages.find_hop(socket.assigns.selected_journey, msgid, to) do
       nil -> {:noreply, socket}
       hop -> {:noreply, assign(socket, :selected_msg, hop)}
     end
@@ -158,20 +162,22 @@ defmodule Bloccs.Web.DashboardLive do
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
-  # Step to the previous/next distinct *message* (by trace), not a feed row, so
-  # the selection tracks a message and never drifts as the feed moves. Resolved
-  # live, so it works whether or not the feed is paused.
+  defp deselect(socket),
+    do: socket |> assign(:selected_msg, nil) |> assign(:selected_journey, [])
+
+  # Step to the previous/next hop within the selected message's journey snapshot,
+  # so navigation follows the message along its path through the network. The
+  # snapshot is fixed at selection, so it never drifts or empties as the feed moves.
   defp nav_msg(%{assigns: %{selected_msg: nil}} = socket, _dir), do: socket
 
   defp nav_msg(socket, dir) do
-    events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
-    msgs = Flow.messages(events)
-    sel_trace = socket.assigns.selected_msg[:trace_id]
+    journey = socket.assigns.selected_journey
 
-    with i when is_integer(i) <- Enum.find_index(msgs, &(&1[:trace_id] == sel_trace)),
+    with i when is_integer(i) <-
+           Enum.find_index(journey, &Panels.Messages.same?(&1, socket.assigns.selected_msg)),
          j when j >= 0 <- if(dir == "prev", do: i - 1, else: i + 1),
-         rep when is_map(rep) <- Enum.at(msgs, j) do
-      assign(socket, :selected_msg, rep)
+         hop when is_map(hop) <- Enum.at(journey, j) do
+      assign(socket, :selected_msg, hop)
     else
       _ -> socket
     end
@@ -191,6 +197,7 @@ defmodule Bloccs.Web.DashboardLive do
      |> assign(:page_title, page_title(socket.assigns.live_action, params))
      |> assign(:flow_filters, %{node: blank(params["node"]), outcome: blank(params["outcome"])})
      |> assign(:selected_msg, nil)
+     |> assign(:selected_journey, [])
      |> assign(:inspect_node, blank(params["node"]))
      |> assign(:flow_paused, false)
      |> load_panel(socket.assigns.live_action, params)}
@@ -445,6 +452,7 @@ defmodule Bloccs.Web.DashboardLive do
       flow={@flow}
       filters={@flow_filters}
       selected={@selected_msg}
+      journey={@selected_journey}
       paused={@flow_paused}
     />
     """

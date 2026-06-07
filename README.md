@@ -1,16 +1,19 @@
-# bloccs_web
+<p align="center">
+  <img alt="BloccsWeb" src="https://raw.githubusercontent.com/Bloccs/bloccs_web/main/assets/bloccs-web-logo.png" width="220">
+</p>
 
-[![Hex Version](https://img.shields.io/hexpm/v/bloccs_web.svg)](https://hex.pm/packages/bloccs_web)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/bloccs_web)
-[![CI](https://github.com/Bloccs/bloccs_web/actions/workflows/ci.yml/badge.svg)](https://github.com/Bloccs/bloccs_web/actions/workflows/ci.yml)
-[![Apache 2 License](https://img.shields.io/hexpm/l/bloccs_web.svg)](https://github.com/Bloccs/bloccs_web/blob/main/LICENSE)
+<p align="center">
+  <a href="https://hex.pm/packages/bloccs_web"><img alt="Hex Version" src="https://img.shields.io/hexpm/v/bloccs_web.svg"></a>
+  <a href="https://hexdocs.pm/bloccs_web"><img alt="Hex Docs" src="https://img.shields.io/badge/hex-docs-blue.svg"></a>
+  <a href="https://github.com/Bloccs/bloccs_web/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Bloccs/bloccs_web/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/Bloccs/bloccs_web/blob/main/LICENSE"><img alt="Apache 2 License" src="https://img.shields.io/hexpm/l/bloccs_web.svg"></a>
+</p>
 
 bloccs_web is a real-time, observe-only view of your running
 [bloccs](https://github.com/Bloccs/bloccs) networks that you host directly
 within your application.
 
-Mount it into your Phoenix app with one router macro — the
-[oban_web](https://github.com/oban-bg/oban_web) model — and watch messages move
+Mount it into your Phoenix app with one router macro and watch messages move
 through the topology, drill into per-node metrics, and follow a single message's
 whole journey across the network. It reads the library's `Bloccs.Introspect` API
 and the `[:bloccs, …]` telemetry stream; it never drives the runtime.

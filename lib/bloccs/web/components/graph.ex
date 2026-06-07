@@ -16,14 +16,16 @@ defmodule Bloccs.Web.Components.Graph do
 
   use Bloccs.Web, :html
 
-  alias Bloccs.Web.Paths
   alias Bloccs.Web.Topology.Layout
 
   attr :network, :any, required: true
   attr :states, :map, default: %{}
   attr :rates, :map, default: %{}
   attr :active_edges, :any, default: nil
+  # when set, each node patches to "<link_base>?node=<id>" to select it
   attr :link_base, :string, default: nil
+  # the currently-selected node id (highlighted)
+  attr :selected, :any, default: nil
   # %{node_id => tooltip string} shown as the node's hover <title>
   attr :titles, :map, default: %{}
   # false hides labels/rates (for compact thumbnails)
@@ -64,9 +66,12 @@ defmodule Bloccs.Web.Components.Graph do
           <% end %>
         </g>
         <g class="bloccs-graph__nodes">
-          <g :for={n <- @layout.nodes} class="bloccs-graph__node">
+          <g
+            :for={n <- @layout.nodes}
+            class={["bloccs-graph__node", @selected == n.id && "is-selected"]}
+          >
             <%= if @link_base do %>
-              <.link navigate={Paths.messages(@link_base, @network.id) <> "?node=#{n.id}"}>
+              <.link patch={"#{@link_base}?node=#{n.id}"}>
                 <.node_cell
                   n={n}
                   state={Map.get(@states, n.id, :idle)}

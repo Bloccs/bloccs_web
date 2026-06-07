@@ -61,7 +61,8 @@ defmodule Bloccs.Web.DashboardLive do
        recording: nil,
        net_stats: %{},
        overview_ids: [],
-       selected_msg: nil
+       selected_msg: nil,
+       inspect_node: nil
      )
      # `.bloccs-trace` has no registered MIME type, so accept :any and validate
      # the contents on load instead of by extension.
@@ -133,6 +134,7 @@ defmodule Bloccs.Web.DashboardLive do
      |> assign(:page_title, page_title(socket.assigns.live_action, params))
      |> assign(:flow_filters, %{node: blank(params["node"]), outcome: blank(params["outcome"])})
      |> assign(:selected_msg, nil)
+     |> assign(:inspect_node, blank(params["node"]))
      |> load_panel(socket.assigns.live_action, params)}
   end
 
@@ -372,6 +374,7 @@ defmodule Bloccs.Web.DashboardLive do
       states={@node_states}
       frame={@frame}
       flow={@flow}
+      selected={@inspect_node}
     />
     """
   end

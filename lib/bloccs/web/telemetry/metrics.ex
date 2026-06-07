@@ -93,7 +93,8 @@ defmodule Bloccs.Web.Telemetry.Metrics do
            error_rate: ratio(m.errors, m.completed),
            throughput: length(recent) / (@window_ms / 1000),
            p50: percentile(durations, 0.5),
-           p95: percentile(durations, 0.95)
+           p95: percentile(durations, 0.95),
+           series: series(recent, now)
          }}
       end)
 
@@ -115,6 +116,21 @@ defmodule Bloccs.Web.Telemetry.Metrics do
 
   defp prune(samples, now) do
     Enum.filter(samples, fn {t, _} -> now - t <= @window_ms end)
+  end
+
+  # Per-second completion counts across the window (oldest → newest), for a tiny
+  # throughput sparkline on the metrics panel.
+  @buckets div(@window_ms, 1000)
+  defp series(samples, now) do
+    start = now - @window_ms
+
+    counts =
+      Enum.reduce(samples, %{}, fn {t, _}, acc ->
+        sec = div(t - start, 1000)
+        if sec >= 0 and sec < @buckets, do: Map.update(acc, sec, 1, &(&1 + 1)), else: acc
+      end)
+
+    for s <- 0..(@buckets - 1), do: Map.get(counts, s, 0)
   end
 
   # A node that finished a while ago settles back to :idle so the graph doesn't

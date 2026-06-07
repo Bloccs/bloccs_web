@@ -1,12 +1,15 @@
 defmodule Bloccs.Web.Panels.Metrics do
   @moduledoc """
-  Panel 3 — live per-node metrics. Renders one row per node from the latest
-  collector `frame` (throughput, p50/p95 latency, completed, error rate) with a
-  state pill. The frame arrives on a 1 Hz PubSub tick handled by
-  `Bloccs.Web.DashboardLive`; idle nodes show "—" until traffic flows.
+  Panel 3 — live per-node metrics. One row per node from the latest collector
+  `frame`: a throughput sparkline + rate, a visual p50/p95 latency bar, completed
+  count, and error rate, with a state pill. A totals row sums the network. The
+  frame arrives on a 1 Hz PubSub tick handled by `Bloccs.Web.DashboardLive`; idle
+  nodes show "—" until traffic flows.
   """
 
   use Bloccs.Web, :html
+
+  import Bloccs.Web.Components.Chart
 
   alias Bloccs.Web.Format
 
@@ -15,7 +18,13 @@ defmodule Bloccs.Web.Panels.Metrics do
   attr :frame, :map, default: %{nodes: %{}, updated_at: nil}
 
   def render(assigns) do
-    assigns = assign(assigns, :rows, rows(assigns.network, assigns.frame))
+    rows = rows(assigns.network, assigns.frame)
+
+    assigns =
+      assigns
+      |> assign(:rows, rows)
+      |> assign(:max_p95, max_of(rows, :p95))
+      |> assign(:totals, totals(rows))
 
     ~H"""
     <section class="bloccs-metrics">
@@ -24,14 +33,13 @@ defmodule Bloccs.Web.Panels.Metrics do
         <span class="bloccs-muted">{header_note(@frame)}</span>
       </header>
 
-      <table class="bloccs-table">
+      <table class="bloccs-table bloccs-metrics-table">
         <thead>
           <tr>
             <th>Node</th>
             <th>State</th>
             <th class="bloccs-num">Throughput</th>
-            <th class="bloccs-num">p50</th>
-            <th class="bloccs-num">p95</th>
+            <th>Latency (p50 · p95)</th>
             <th class="bloccs-num">Completed</th>
             <th class="bloccs-num">Errors</th>
           </tr>
@@ -47,17 +55,50 @@ defmodule Bloccs.Web.Panels.Metrics do
               </span>
             </td>
             <td><.status_pill state={state(m)} /></td>
-            <td class="bloccs-num">{Format.rate(m && m.throughput)}</td>
-            <td class="bloccs-num">{Format.latency(m && m.p50)}</td>
-            <td class="bloccs-num">{Format.latency(m && m.p95)}</td>
+            <td class="bloccs-num">
+              <span class="bloccs-tp">
+                <.sparkline values={series(m)} />
+                <span class="bloccs-tp__rate">{Format.rate(m && m.throughput)}</span>
+              </span>
+            </td>
+            <td>
+              <%= if m && m.p95 do %>
+                <div
+                  class="bloccs-lat"
+                  title={"p50 #{Format.latency(m.p50)} · p95 #{Format.latency(m.p95)}"}
+                >
+                  <span class="bloccs-lat__track">
+                    <span class="bloccs-lat__fill" style={"width:#{pct(m.p95, @max_p95)}%"}></span>
+                    <span class="bloccs-lat__p50" style={"left:#{pct(m.p50, @max_p95)}%"}></span>
+                  </span>
+                  <span class="bloccs-lat__txt">
+                    {Format.latency(m.p50)} · {Format.latency(m.p95)}
+                  </span>
+                </div>
+              <% else %>
+                <span class="bloccs-muted">—</span>
+              <% end %>
+            </td>
             <td class="bloccs-num">{Format.count(m && m.completed)}</td>
             <td class={["bloccs-num", error_class(m)]}>{errors(m)}</td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr class="bloccs-metrics-total">
+            <td>Total</td>
+            <td></td>
+            <td class="bloccs-num">{Format.rate(@totals.throughput)}</td>
+            <td></td>
+            <td class="bloccs-num">{Format.count(@totals.completed)}</td>
+            <td class={["bloccs-num", @totals.errors > 0 && "bloccs-num--error"]}>
+              {@totals.errors}
+            </td>
+          </tr>
+        </tfoot>
       </table>
 
       <p class="bloccs-muted bloccs-hint">
-        Updates live as messages flow through the network (1 Hz). Idle nodes show "—".
+        Updates live as messages flow through the network (1 Hz). Sparklines cover the last 10s.
       </p>
     </section>
     """
@@ -66,6 +107,34 @@ defmodule Bloccs.Web.Panels.Metrics do
   defp rows(network, frame) do
     Enum.map(network.nodes, fn node -> {node, Map.get(frame.nodes, node.id)} end)
   end
+
+  defp series(nil), do: []
+  defp series(m), do: Map.get(m, :series, [])
+
+  defp max_of(rows, key) do
+    rows
+    |> Enum.map(fn {_n, m} -> (m && Map.get(m, key)) || 0 end)
+    |> Enum.max(fn -> 0 end)
+    |> max(1)
+    |> Kernel.*(1.0)
+  end
+
+  defp totals(rows) do
+    Enum.reduce(rows, %{throughput: 0.0, completed: 0, errors: 0}, fn {_n, m}, acc ->
+      if m do
+        %{
+          throughput: acc.throughput + m.throughput,
+          completed: acc.completed + m.completed,
+          errors: acc.errors + m.errors
+        }
+      else
+        acc
+      end
+    end)
+  end
+
+  defp pct(_v, max) when max in [0, 0.0], do: 0
+  defp pct(v, max), do: min(100, round(v / max * 100))
 
   defp state(nil), do: :idle
   defp state(%{state: state}), do: state

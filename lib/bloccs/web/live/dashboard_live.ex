@@ -15,7 +15,7 @@ defmodule Bloccs.Web.DashboardLive do
   alias Bloccs.{Introspect, Trace}
   alias Bloccs.Web.{Access, Coverage, Paths}
   alias Bloccs.Web.Panels
-  alias Bloccs.Web.Telemetry.Collector
+  alias Bloccs.Web.Telemetry.{Collector, Flow}
 
   @pubsub Bloccs.Web.PubSub
 
@@ -58,7 +58,13 @@ defmodule Bloccs.Web.DashboardLive do
        flow_topic: nil,
        flow_filters: %{node: nil, outcome: nil},
        coverage: nil,
-       recording: nil
+       recording: nil,
+       net_stats: %{},
+       overview_ids: [],
+       selected_msg: nil,
+       selected_journey: [],
+       inspect_node: nil,
+       flow_paused: false
      )
      # `.bloccs-trace` has no registered MIME type, so accept :any and validate
      # the contents on load instead of by extension.
@@ -66,18 +72,68 @@ defmodule Bloccs.Web.DashboardLive do
   end
 
   @impl true
-  def handle_info({:bloccs_frame, _network, frame}, socket) do
-    {:noreply, put_frame(socket, frame)}
+  def handle_info({:bloccs_frame, network, frame}, socket) do
+    {:noreply, socket |> put_frame(frame) |> update_overview(network, frame: frame)}
   end
 
-  def handle_info({:bloccs_flow, _network, flow}, socket) do
-    {:noreply, assign(socket, :flow, flow)}
+  def handle_info({:bloccs_flow, network, flow}, socket) do
+    # Always fold into the overview stats; freeze the live feed when paused so the
+    # user can inspect without rows scrolling away.
+    socket = update_overview(socket, network, flow: flow)
+    socket = if socket.assigns.flow_paused, do: socket, else: assign(socket, :flow, flow)
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("flow_filter", params, socket) do
     filters = %{node: blank(params["node"]), outcome: blank(params["outcome"])}
     {:noreply, assign(socket, :flow_filters, filters)}
+  end
+
+  def handle_event("toggle_pause", _params, socket) do
+    {:noreply, assign(socket, :flow_paused, not socket.assigns.flow_paused)}
+  end
+
+  def handle_event("close_msg", _params, socket) do
+    {:noreply, deselect(socket)}
+  end
+
+  def handle_event("msg_nav", %{"dir" => dir}, socket) do
+    {:noreply, nav_msg(socket, dir)}
+  end
+
+  def handle_event("msg_key", %{"key" => "ArrowUp"}, socket),
+    do: {:noreply, nav_msg(socket, "prev")}
+
+  def handle_event("msg_key", %{"key" => "ArrowDown"}, socket),
+    do: {:noreply, nav_msg(socket, "next")}
+
+  def handle_event("msg_key", %{"key" => "Escape"}, socket),
+    do: {:noreply, deselect(socket)}
+
+  def handle_event("msg_key", _params, socket), do: {:noreply, socket}
+
+  def handle_event("inspect_msg", %{"idx" => idx}, socket) do
+    events = Panels.Messages.filtered(socket.assigns.flow.events, socket.assigns.flow_filters)
+    event = Enum.at(events, String.to_integer(idx))
+
+    if event && Panels.Messages.same?(event, socket.assigns.selected_msg) do
+      {:noreply, deselect(socket)}
+    else
+      # Snapshot the message's journey at selection time, so the open drawer
+      # persists and navigates stably even as the live feed scrolls it out of
+      # the recent ring.
+      journey = if event, do: Flow.journey(events, event[:msg_id]), else: []
+      {:noreply, socket |> assign(:selected_msg, event) |> assign(:selected_journey, journey)}
+    end
+  end
+
+  # Re-center the drawer on a specific hop of the open message's journey snapshot.
+  def handle_event("inspect_hop", %{"msgid" => msgid, "to" => to}, socket) do
+    case Panels.Messages.find_hop(socket.assigns.selected_journey, msgid, to) do
+      nil -> {:noreply, socket}
+      hop -> {:noreply, assign(socket, :selected_msg, hop)}
+    end
   end
 
   @impl true
@@ -106,6 +162,27 @@ defmodule Bloccs.Web.DashboardLive do
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
+  defp deselect(socket),
+    do: socket |> assign(:selected_msg, nil) |> assign(:selected_journey, [])
+
+  # Step to the previous/next hop within the selected message's journey snapshot,
+  # so navigation follows the message along its path through the network. The
+  # snapshot is fixed at selection, so it never drifts or empties as the feed moves.
+  defp nav_msg(%{assigns: %{selected_msg: nil}} = socket, _dir), do: socket
+
+  defp nav_msg(socket, dir) do
+    journey = socket.assigns.selected_journey
+
+    with i when is_integer(i) <-
+           Enum.find_index(journey, &Panels.Messages.same?(&1, socket.assigns.selected_msg)),
+         j when j >= 0 <- if(dir == "prev", do: i - 1, else: i + 1),
+         hop when is_map(hop) <- Enum.at(journey, j) do
+      assign(socket, :selected_msg, hop)
+    else
+      _ -> socket
+    end
+  end
+
   @impl true
   def terminate(_reason, socket) do
     if rec = socket.assigns[:recording], do: Trace.stop(rec)
@@ -118,6 +195,11 @@ defmodule Bloccs.Web.DashboardLive do
      socket
      |> assign(:now, System.monotonic_time(:millisecond))
      |> assign(:page_title, page_title(socket.assigns.live_action, params))
+     |> assign(:flow_filters, %{node: blank(params["node"]), outcome: blank(params["outcome"])})
+     |> assign(:selected_msg, nil)
+     |> assign(:selected_journey, [])
+     |> assign(:inspect_node, blank(params["node"]))
+     |> assign(:flow_paused, false)
      |> load_panel(socket.assigns.live_action, params)}
   end
 
@@ -142,7 +224,12 @@ defmodule Bloccs.Web.DashboardLive do
   # ---- data loading per panel ----
 
   defp load_panel(socket, :networks, _params) do
-    assign(socket, :networks, Introspect.list_networks())
+    networks = Introspect.list_networks()
+
+    socket
+    |> assign(:networks, networks)
+    |> assign(:net_stats, Map.new(networks, &{&1.id, net_stat(&1.id)}))
+    |> subscribe_overview(networks)
   end
 
   defp load_panel(socket, action, params)
@@ -158,9 +245,70 @@ defmodule Bloccs.Web.DashboardLive do
     end
   end
 
-  defp maybe_subscribe(socket, action, network) when action in [:topology, :metrics],
-    do: subscribe_metrics(socket, network)
+  # ---- networks overview (live cards) ----
 
+  # Subscribe to every network's flow + metric topics so the overview cards stay
+  # live. Re-entrant: unsubscribe the previous set before subscribing the new one.
+  defp subscribe_overview(socket, networks) do
+    if connected?(socket) do
+      ids = Enum.map(networks, & &1.id)
+      Enum.each(socket.assigns.overview_ids -- ids, &unsubscribe_overview/1)
+      Enum.each(ids -- socket.assigns.overview_ids, &subscribe_one_overview/1)
+      assign(socket, :overview_ids, ids)
+    else
+      socket
+    end
+  end
+
+  defp subscribe_one_overview(id) do
+    Phoenix.PubSub.subscribe(@pubsub, Collector.flow_topic(id))
+    Phoenix.PubSub.subscribe(@pubsub, Collector.topic(id))
+  end
+
+  defp unsubscribe_overview(id) do
+    Phoenix.PubSub.unsubscribe(@pubsub, Collector.flow_topic(id))
+    Phoenix.PubSub.unsubscribe(@pubsub, Collector.topic(id))
+  end
+
+  defp net_stat(id) do
+    frame = Collector.snapshot(id)
+    flow = Collector.flow_snapshot(id)
+    %{rate: flow.rate, series: series_totals(flow.series), errors: total_errors(frame)}
+  end
+
+  defp series_totals(series), do: Enum.map(series, &Map.get(&1, :total, 0))
+
+  defp total_errors(%{nodes: nodes}),
+    do: nodes |> Map.values() |> Enum.map(&Map.get(&1, :errors, 0)) |> Enum.sum()
+
+  defp total_errors(_), do: 0
+
+  # Fold a live frame into the overview stats for that network (no-op if the
+  # network isn't on the currently-loaded overview).
+  defp update_overview(socket, network, change) do
+    stats = socket.assigns.net_stats
+
+    case Map.fetch(stats, network) do
+      {:ok, cur} ->
+        updated =
+          case change do
+            [flow: flow] -> %{cur | rate: flow.rate, series: series_totals(flow.series)}
+            [frame: frame] -> %{cur | errors: total_errors(frame)}
+          end
+
+        assign(socket, :net_stats, Map.put(stats, network, updated))
+
+      :error ->
+        socket
+    end
+  end
+
+  # The live topology reads both metric frames (node state + throughput) and the
+  # flow snapshot (which edges are active), so it subscribes to both.
+  defp maybe_subscribe(socket, :topology, network),
+    do: socket |> subscribe_metrics(network) |> subscribe_flow(network)
+
+  defp maybe_subscribe(socket, :metrics, network), do: subscribe_metrics(socket, network)
   defp maybe_subscribe(socket, :messages, network), do: subscribe_flow(socket, network)
   defp maybe_subscribe(socket, _action, _network), do: socket
 
@@ -262,7 +410,12 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp panel_body(%{live_action: :networks} = assigns) do
     ~H"""
-    <Panels.Networks.render networks={@networks} base_path={@base_path} now={@now} />
+    <Panels.Networks.render
+      networks={@networks}
+      base_path={@base_path}
+      now={@now}
+      stats={@net_stats}
+    />
     """
   end
 
@@ -280,7 +433,14 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp panel_body(%{live_action: :topology} = assigns) do
     ~H"""
-    <Panels.Topology.render network={@network} base_path={@base_path} states={@node_states} />
+    <Panels.Topology.render
+      network={@network}
+      base_path={@base_path}
+      states={@node_states}
+      frame={@frame}
+      flow={@flow}
+      selected={@inspect_node}
+    />
     """
   end
 
@@ -291,6 +451,9 @@ defmodule Bloccs.Web.DashboardLive do
       base_path={@base_path}
       flow={@flow}
       filters={@flow_filters}
+      selected={@selected_msg}
+      journey={@selected_journey}
+      paused={@flow_paused}
     />
     """
   end
@@ -324,7 +487,10 @@ defmodule Bloccs.Web.DashboardLive do
   defp panel_nav(assigns) do
     ~H"""
     <nav class="bloccs-nav">
-      <.link navigate={Paths.networks(@base_path)} class="bloccs-brand">bloccs</.link>
+      <.link navigate={Paths.networks(@base_path)} class="bloccs-brand" aria-label="BloccsWeb">
+        <img src={"#{@base_path}/assets/mark.svg"} alt="" class="bloccs-mark" />
+        <span class="bloccs-wordmark"><span class="bloccs-wm-thin">Bloccs</span>Web</span>
+      </.link>
       <.nav_link
         active={@active}
         action={:networks}

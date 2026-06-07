@@ -11,7 +11,11 @@ defmodule Bloccs.Web.Assets do
 
   @behaviour Plug
 
-  @types %{"app.css" => "text/css", "app.js" => "application/javascript"}
+  @types %{
+    "app.css" => "text/css",
+    "app.js" => "application/javascript",
+    "mark.svg" => "image/svg+xml"
+  }
 
   @impl true
   def init(opts), do: opts

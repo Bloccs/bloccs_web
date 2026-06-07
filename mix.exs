@@ -1,7 +1,7 @@
 defmodule Bloccs.Web.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
   @source_url "https://github.com/Bloccs/bloccs_web"
 
   def project do
@@ -37,10 +37,12 @@ defmodule Bloccs.Web.MixProject do
 
   defp deps do
     [
-      # The library being observed. Needs the `:payload` emit metadata from
-      # bloccs 0.3.0 (Bloccs.Inspect). For local dev against an unreleased bloccs,
-      # override with a path dep: {:bloccs, path: "../bloccs"}
-      {:bloccs, "~> 0.3"},
+      # The library being observed. Needs bloccs 0.5.0 for per-message lineage in
+      # `[:bloccs, :emit]` (msg_id/parents/trace_id — the Messages journey view)
+      # plus 0.4.0's introspect contract/config (the topology code/primitive
+      # panel). For local dev against an unreleased bloccs, override with a path
+      # dep: {:bloccs, path: "../bloccs"}
+      {:bloccs, "~> 0.5"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.1"},

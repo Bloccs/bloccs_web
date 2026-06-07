@@ -52,4 +52,48 @@ defmodule Bloccs.Web.Telemetry.FlowTest do
 
     assert length(Flow.snapshot(state, 2_000).events) == 100
   end
+
+  # A lineage event: msg_id with parents + trace, plus an `at` for ordering.
+  defp lev(msg_id, parents, trace, at, node \\ :n) do
+    %{
+      node: node,
+      out_port: :out,
+      to: nil,
+      outcome: :ok,
+      at: at,
+      msg_id: msg_id,
+      parents: parents,
+      trace_id: trace
+    }
+  end
+
+  describe "journey/2" do
+    test "is empty for a nil msg_id" do
+      assert Flow.journey([lev(2, [1], 1, 10)], nil) == []
+    end
+
+    test "walks a 1:1 chain from any hop, oldest-first" do
+      # ingress root 1 (no event) -> emit 2 -> emit 3 -> emit 4, one trace
+      events = [lev(4, [3], 1, 40), lev(3, [2], 1, 30), lev(2, [1], 1, 20)]
+
+      ids = Flow.journey(events, 3) |> Enum.map(& &1.msg_id)
+      # from the middle hop, reaches the whole chain present in the ring
+      assert ids == [2, 3, 4]
+    end
+
+    test "a fan-in journey includes every merged input branch" do
+      # two independent inputs (traces 1 and 2) merge at msg 30 (fresh trace 99),
+      # which then emits 31.
+      events = [
+        lev(31, [30], 99, 60),
+        lev(30, [10, 20], 99, 50),
+        lev(10, [1], 1, 10),
+        lev(20, [2], 2, 20)
+      ]
+
+      ids = Flow.journey(events, 31) |> Enum.map(& &1.msg_id) |> Enum.sort()
+      # both pre-merge branches (10, 20) and the merge (30) + its child (31)
+      assert ids == [10, 20, 30, 31]
+    end
+  end
 end

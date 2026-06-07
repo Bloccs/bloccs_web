@@ -122,69 +122,70 @@ defmodule Bloccs.Web.Panels.Messages do
               <span class="bloccs-muted">{Format.latency(@selected.duration_ms)}</span>
             </div>
           </div>
-          <div class="bloccs-drawer__actions">
-            <span class="bloccs-drawer__pos">{pos_label(@sel_idx, @events)}</span>
-            <button
-              type="button"
-              class="bloccs-iconbtn"
-              phx-click="msg_nav"
-              phx-value-dir="prev"
-              disabled={@sel_idx in [nil, 0]}
-              title="Newer (↑)"
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              class="bloccs-iconbtn"
-              phx-click="msg_nav"
-              phx-value-dir="next"
-              disabled={@sel_idx == nil or @sel_idx >= length(@events) - 1}
-              title="Older (↓)"
-            >
-              ↓
-            </button>
-            <button type="button" class="bloccs-drawer__x" phx-click="close_msg" title="Close (Esc)">
-              ×
-            </button>
-          </div>
+          <button type="button" class="bloccs-drawer__x" phx-click="close_msg" title="Close (Esc)">
+            ×
+          </button>
         </header>
 
-        <div class="bloccs-drawer__section">
-          <h3>Details</h3>
-          <div class="bloccs-kv">
-            <span class="bloccs-muted">from</span><code>{from_label(@selected)}</code>
+        <div class="bloccs-drawer__body">
+          <div class="bloccs-drawer__section">
+            <h3>Details</h3>
+            <div class="bloccs-kv">
+              <span class="bloccs-muted">from</span><code>{from_label(@selected)}</code>
+            </div>
+            <div class="bloccs-kv">
+              <span class="bloccs-muted">to</span><code>{to_label(@selected)}</code>
+            </div>
+            <div class="bloccs-kv">
+              <span class="bloccs-muted">outcome</span><code>{@selected.outcome}</code>
+            </div>
+            <div class="bloccs-kv">
+              <span class="bloccs-muted">latency</span>
+              <code>{Format.latency(@selected.duration_ms)}</code>
+            </div>
+            <div class="bloccs-kv">
+              <span class="bloccs-muted">at</span><code>{time(@selected.at)}</code>
+            </div>
           </div>
-          <div class="bloccs-kv">
-            <span class="bloccs-muted">to</span><code>{to_label(@selected)}</code>
+
+          <div class="bloccs-drawer__section">
+            <h3>Payload</h3>
+            <pre class="bloccs-detail__payload">{payload_full(@selected) || "(payload capture disabled — config :bloccs, :inspect, enabled: true)"}</pre>
           </div>
-          <div class="bloccs-kv">
-            <span class="bloccs-muted">outcome</span><code>{@selected.outcome}</code>
-          </div>
-          <div class="bloccs-kv">
-            <span class="bloccs-muted">latency</span><code>{Format.latency(@selected.duration_ms)}</code>
-          </div>
-          <div class="bloccs-kv">
-            <span class="bloccs-muted">at</span><code>{time(@selected.at)}</code>
+
+          <div class="bloccs-drawer__section">
+            <h3>Path</h3>
+            <div class="bloccs-drawer__graph">
+              <.graph
+                network={@network}
+                states={hop_states(@selected)}
+                active_edges={hop_edge(@selected)}
+                labels={false}
+              />
+            </div>
           </div>
         </div>
 
-        <div class="bloccs-drawer__section">
-          <h3>Payload</h3>
-          <pre class="bloccs-detail__payload">{payload_full(@selected) || "(payload capture disabled — config :bloccs, :inspect, enabled: true)"}</pre>
-        </div>
-
-        <div class="bloccs-drawer__section">
-          <h3>Path</h3>
-          <div class="bloccs-drawer__graph">
-            <.graph
-              network={@network}
-              states={hop_states(@selected)}
-              active_edges={hop_edge(@selected)}
-              labels={false}
-            />
-          </div>
-        </div>
+        <footer class="bloccs-drawer__nav">
+          <button
+            type="button"
+            class="bloccs-btn bloccs-drawer__navbtn"
+            phx-click="msg_nav"
+            phx-value-dir="prev"
+            disabled={@sel_idx in [nil, 0]}
+          >
+            ← Prev
+          </button>
+          <button
+            type="button"
+            class="bloccs-btn bloccs-drawer__navbtn"
+            phx-click="msg_nav"
+            phx-value-dir="next"
+            disabled={@sel_idx == nil or @sel_idx >= length(@events) - 1}
+          >
+            Next →
+          </button>
+        </footer>
       </aside>
     </section>
     """
@@ -242,9 +243,6 @@ defmodule Bloccs.Web.Panels.Messages do
 
   defp to_label(%{to: {tn, tp}}), do: "#{tn}.#{tp}"
   defp to_label(_), do: "·"
-
-  defp pos_label(nil, _events), do: "—"
-  defp pos_label(idx, events), do: "#{idx + 1} of #{length(events)}"
 
   defp pill(:ok), do: :ok
   defp pill(o) when o in [:dropped, :skipped], do: :idle

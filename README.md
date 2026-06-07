@@ -1,5 +1,8 @@
 <p align="center">
-  <img alt="BloccsWeb" src="https://raw.githubusercontent.com/Bloccs/bloccs_web/main/assets/bloccs-web-logo.png" width="220">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Bloccs/bloccs_web/main/assets/bloccs-web-logo-dark.png">
+    <img alt="BloccsWeb" src="https://raw.githubusercontent.com/Bloccs/bloccs_web/main/assets/bloccs-web-logo-light.png" width="360">
+  </picture>
 </p>
 
 <p align="center">

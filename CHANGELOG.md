@@ -4,6 +4,29 @@ All notable changes to `bloccs_web` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-08
+
+Now requires `bloccs ~> 0.8`, and surfaces the request/response (0.6/0.7) and DB
+(0.7) features the library added.
+
+### Added
+
+- **Reply-node badge.** A node declared `reply = true` (a `Bloccs.call/4` ·
+  `cast/4` terminal) is badged in the topology inspector — from the node view's
+  new `reply` field (bloccs 0.8).
+- **Per-axis effect scopes.** The inspector's Effects section now shows each
+  axis's declared detail from the node view's `effect_detail` (bloccs 0.8): `db`
+  → its `"table:action"` scopes (read / insert / update / delete), `http` → its
+  allowed hosts + methods, `time` / `random` → their mode. Previously only the
+  bare axis (`db`, `http`) was shown.
+- **In-flight request/response column.** The Networks panel shows the in-flight
+  request count per network (`Bloccs.Collector.stats/0`) — a snapshot of pending
+  `Bloccs.call` / `cast` load.
+
+### Changed
+
+- Requires `bloccs ~> 0.8` (was `~> 0.5`).
+
 ## [0.2.0] - 2026-06-07
 
 Now requires `bloccs ~> 0.5` (per-message lineage + the introspect

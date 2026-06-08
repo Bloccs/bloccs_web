@@ -225,10 +225,13 @@ defmodule Bloccs.Web.DashboardLive do
 
   defp load_panel(socket, :networks, _params) do
     networks = Introspect.list_networks()
+    # In-flight request/response load per network (Bloccs.call/4 · cast/4),
+    # a snapshot at panel load — see `Bloccs.Collector.stats/0`.
+    inflight = Bloccs.Collector.stats().by_network
 
     socket
     |> assign(:networks, networks)
-    |> assign(:net_stats, Map.new(networks, &{&1.id, net_stat(&1.id)}))
+    |> assign(:net_stats, Map.new(networks, &{&1.id, net_stat(&1.id, inflight)}))
     |> subscribe_overview(networks)
   end
 
@@ -270,10 +273,16 @@ defmodule Bloccs.Web.DashboardLive do
     Phoenix.PubSub.unsubscribe(@pubsub, Collector.topic(id))
   end
 
-  defp net_stat(id) do
+  defp net_stat(id, inflight) do
     frame = Collector.snapshot(id)
     flow = Collector.flow_snapshot(id)
-    %{rate: flow.rate, series: series_totals(flow.series), errors: total_errors(frame)}
+
+    %{
+      rate: flow.rate,
+      series: series_totals(flow.series),
+      errors: total_errors(frame),
+      in_flight: Map.get(inflight, id, 0)
+    }
   end
 
   defp series_totals(series), do: Enum.map(series, &Map.get(&1, :total, 0))

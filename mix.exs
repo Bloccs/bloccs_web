@@ -1,7 +1,7 @@
 defmodule Bloccs.Web.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
   @source_url "https://github.com/Bloccs/bloccs_web"
 
   def project do
@@ -40,9 +40,12 @@ defmodule Bloccs.Web.MixProject do
       # The library being observed. Needs bloccs 0.5.0 for per-message lineage in
       # `[:bloccs, :emit]` (msg_id/parents/trace_id — the Messages journey view)
       # plus 0.4.0's introspect contract/config (the topology code/primitive
-      # panel). For local dev against an unreleased bloccs, override with a path
+      # panel). 0.8.0 adds the node view's `reply` flag + per-axis `effect_detail`
+      # (DB scopes / HTTP hosts) the topology renders, and 0.6/0.7's
+      # request/response (`[:bloccs, :request, *]` telemetry + `Collector.stats/0`).
+      # For local dev against an unreleased bloccs, override with a path
       # dep: {:bloccs, path: "../bloccs"}
-      {:bloccs, "~> 0.5"},
+      {:bloccs, "~> 0.8"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_html, "~> 4.1"},

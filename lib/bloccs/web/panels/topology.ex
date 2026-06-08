@@ -102,7 +102,16 @@ defmodule Bloccs.Web.Panels.Topology do
         </svg>
       </span>
       <div class="bloccs-ins__id">
-        <div class="bloccs-ins__name">{@node.id}</div>
+        <div class="bloccs-ins__name">
+          {@node.id}
+          <span
+            :if={@node[:reply]}
+            class="bloccs-chip bloccs-chip--reply"
+            title="Replies to Bloccs.call/4 · cast/4"
+          >
+            reply
+          </span>
+        </div>
         <div class="bloccs-ins__kind">{@node.kind} · {@node.glyph}</div>
       </div>
       <.link patch={@topo} class="bloccs-ins__x" title="Back to network">×</.link>
@@ -133,7 +142,12 @@ defmodule Bloccs.Web.Panels.Topology do
     </.section>
 
     <.section title="Effects">
-      <span :for={fx <- @node.effects} class="bloccs-chip bloccs-chip--fx">{fx}</span>
+      <div :for={fx <- @node.effects} class="bloccs-fxrow">
+        <span class="bloccs-chip bloccs-chip--fx">{fx}</span>
+        <span :for={scope <- effect_scopes(@node, fx)} class="bloccs-chip bloccs-chip--scope">
+          {scope}
+        </span>
+      </div>
       <span :if={@node.effects == []} class="bloccs-muted bloccs-ins__pure">
         pure — no declared effects
       </span>
@@ -268,6 +282,21 @@ defmodule Bloccs.Web.Panels.Topology do
   end
 
   defp retry(_), do: "—"
+
+  @doc """
+  The declared scopes/detail for one effect axis, from the node view's
+  `effect_detail` (bloccs ≥ 0.8). `db` → its `"table:action"` scopes (read /
+  insert / update / delete); `http` → allowed hosts + methods; `time`/`random`
+  → their mode. Empty for older introspect views (graceful: just the axis chip).
+  """
+  def effect_scopes(node, axis) do
+    case node |> Map.get(:effect_detail, %{}) |> Map.get(axis) do
+      %{allow: allow, methods: methods} -> List.wrap(allow) ++ List.wrap(methods)
+      %{allow: allow} -> List.wrap(allow)
+      mode when is_binary(mode) -> [mode]
+      _ -> []
+    end
+  end
 
   @doc """
   Human one-liners for whichever primitive blocks a node declares (`batch`,

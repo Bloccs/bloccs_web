@@ -34,6 +34,9 @@ defmodule Bloccs.Web.Panels.Networks do
             <th>Throughput</th>
             <th class="bloccs-num">Nodes</th>
             <th class="bloccs-num">Edges</th>
+            <th class="bloccs-num" title="In-flight request/response calls (Bloccs.call · cast)">
+              In-flight
+            </th>
             <th class="bloccs-num">Errors</th>
             <th class="bloccs-num">Uptime</th>
           </tr>
@@ -55,6 +58,9 @@ defmodule Bloccs.Web.Panels.Networks do
             </td>
             <td class="bloccs-num">{n.node_count}</td>
             <td class="bloccs-num">{n.edge_count}</td>
+            <td class={["bloccs-num", inflight(@stats, n.id) > 0 && "bloccs-num--live"]}>
+              {inflight(@stats, n.id)}
+            </td>
             <td class={["bloccs-num", errors(@stats, n.id) > 0 && "bloccs-num--error"]}>
               {errors(@stats, n.id)}
             </td>
@@ -76,6 +82,7 @@ defmodule Bloccs.Web.Panels.Networks do
 
   defp rate(stats, id), do: get_in(stats, [id, :rate]) || 0
   defp errors(stats, id), do: get_in(stats, [id, :errors]) || 0
+  defp inflight(stats, id), do: get_in(stats, [id, :in_flight]) || 0
   defp series(stats, id), do: get_in(stats, [id, :series]) || []
 
   defp count_label([_]), do: "1 running"

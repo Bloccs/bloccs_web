@@ -86,8 +86,8 @@ Add `bloccs_web` alongside `bloccs`:
 ```elixir
 def deps do
   [
-    {:bloccs, "~> 0.5"},
-    {:bloccs_web, "~> 0.2"}
+    {:bloccs, "~> 0.8"},
+    {:bloccs_web, "~> 0.3"}
   ]
 end
 ```
